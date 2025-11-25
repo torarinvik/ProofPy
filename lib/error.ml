@@ -41,7 +41,7 @@ let make_error ?(loc = no_loc) kind message =
 
 let pp_error_kind fmt = function
   | ParseError e -> Format.fprintf fmt "Parse error: %s" (Json_parser.show_parse_error e)
-  | TypingError e -> Format.fprintf fmt "Type error: %s" (Typing.show_typing_error e)
+  | TypingError e -> Format.fprintf fmt "Type error: %s" (Typing.string_of_typing_error e)
   | InternalError msg -> Format.fprintf fmt "Internal error: %s" msg
 
 let pp_error fmt err =

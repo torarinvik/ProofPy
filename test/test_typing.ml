@@ -225,6 +225,41 @@ let test_positivity_failure () =
       | Error (Typing.PositivityCheckFailed ("Bad", "f")) -> ()
       | Error e -> fail (Typing.show_typing_error e))
 
+let test_rec_arg_not_inductive () =
+  let json = {|
+    {
+      "module": "Test",
+      "imports": [],
+      "declarations": [
+        {
+          "def": {
+            "name": "bad_rec",
+            "rec_args": [0],
+            "type": {
+              "pi": {
+                "arg": { "name": "x", "type": { "universe": "Type" } },
+                "result": { "universe": "Type" }
+              }
+            },
+            "body": {
+              "lambda": {
+                "arg": { "name": "x", "type": { "universe": "Type" } },
+                "body": { "app": [{ "var": "bad_rec" }, { "var": "x" }] }
+              }
+            }
+          }
+        }
+      ]
+    }
+  |} in
+  match Json_parser.parse_string json with
+  | Error e -> fail (Json_parser.show_parse_error e)
+  | Ok m -> (
+      match Typing.check_module m with
+      | Ok _ -> fail "expected rec_args inductive failure"
+      | Error (Typing.RecArgNotInductive ("bad_rec", 0)) -> ()
+      | Error e -> fail (Typing.show_typing_error e))
+
 let () =
   run "Typing" [
     "basic", [
@@ -233,5 +268,6 @@ let () =
       test_case "nat plus match" `Quick test_nat_plus_match;
       test_case "recursion without rec_args" `Quick test_recursion_without_rec_args;
       test_case "positivity failure" `Quick test_positivity_failure;
+      test_case "rec_args not inductive" `Quick test_rec_arg_not_inductive;
     ]
   ]

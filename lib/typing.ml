@@ -18,6 +18,7 @@ type typing_error =
   | InvalidPattern of string
   | TerminationCheckFailed of name
   | PositivityCheckFailed of name * name  (* inductive, problematic param/ctor arg *)
+  | RecArgNotInductive of name * int      (* def name, param index *)
   | InvalidRecursiveArg of name * int
   | UnknownConstructor of name
   | UnknownInductive of name
@@ -153,6 +154,43 @@ let rec take_n n xs =
   | 0, _ -> []
   | _, [] -> []
   | n, x :: tl -> x :: take_n (n - 1) tl
+
+(** Pretty printing of typing errors. *)
+let string_of_role = function
+  | Runtime -> "runtime"
+  | ProofOnly -> "proof-only"
+  | Both -> "both"
+
+let string_of_typing_error (err : typing_error) : string =
+  let pp_term = Pretty.term_to_string in
+  match err with
+  | UnboundVariable x -> Format.sprintf "Unbound variable %s" x
+  | TypeMismatch { expected; actual; context } ->
+      Format.sprintf "Type mismatch in %s: expected %s but got %s"
+        context (pp_term expected) (pp_term actual)
+  | NotAFunction t -> Format.sprintf "Cannot apply non-function term: %s" (pp_term t)
+  | NotAType t -> Format.sprintf "Expected a type, but got %s" (pp_term t)
+  | NotAProp t -> Format.sprintf "Expected a proposition, but got %s" (pp_term t)
+  | InvalidApplication (f, arg) ->
+      Format.sprintf "Invalid application: %s applied to %s" (pp_term f) (pp_term arg)
+  | NonExhaustiveMatch ctors ->
+      Format.sprintf "Non-exhaustive match; missing cases for: %s"
+        (String.concat ", " ctors)
+  | InvalidPattern msg -> Format.sprintf "Invalid pattern: %s" msg
+  | TerminationCheckFailed name ->
+      Format.sprintf "Termination check failed for %s: recursive call not structurally decreasing" name
+  | PositivityCheckFailed (ind, arg_name) ->
+      Format.sprintf "Strict positivity violated in %s: constructor argument %s is negative"
+        ind arg_name
+  | RecArgNotInductive (name, idx) ->
+      Format.sprintf "rec_args index %d for %s is not an inductive argument" idx name
+  | InvalidRecursiveArg (name, idx) ->
+      Format.sprintf "Invalid rec_args index %d for %s" idx name
+  | UnknownConstructor c -> Format.sprintf "Unknown constructor %s" c
+  | UnknownInductive i -> Format.sprintf "Unknown inductive type %s" i
+  | RoleMismatch (name, expected, actual) ->
+      Format.sprintf "Role mismatch for %s: expected %s but found %s"
+        name (string_of_role expected) (string_of_role actual)
 
 (** Positivity checking: ensure inductive appears only in strictly positive positions. *)
 let rec positive_occurrences (target : name) (positive : bool) (t : term) : bool =
@@ -432,19 +470,36 @@ let check_termination (def : def_decl) : unit =
             (i, List.fold_left (fun acc n -> StringSet.add n acc) set names) :: rest
         | entry :: rest -> entry :: update_allowed rest idx names
       in
-      let rec_index_of_var allowed v =
-        match Hashtbl.find_opt rec_param_by_name v with
-        | Some i -> Some i
-        | None ->
-            List.find_map
-              (fun (i, set) -> if StringSet.mem v set then Some i else None)
-              allowed
-      in
-      let rec check_term allowed t =
-        match t with
-        | Var x | Global x ->
-            if String.equal x def.def_name then
-              raise (TypeError (TerminationCheckFailed def.def_name))
+  let rec_index_of_var allowed v =
+    match Hashtbl.find_opt rec_param_by_name v with
+    | Some i -> Some i
+    | None ->
+        List.find_map
+          (fun (i, set) -> if StringSet.mem v set then Some i else None)
+          allowed
+  in
+  let rec_param_inductives =
+    List.map
+      (fun idx ->
+        match List.nth_opt params idx with
+        | None -> raise (TypeError (InvalidRecursiveArg (def.def_name, idx)))
+        | Some b -> (
+            match whnf (make_ctx (empty_sig ())) b.ty with
+            | Var n | Global n -> Some n
+            | _ -> None))
+      rec_args
+  in
+  List.iter2
+    (fun idx ind_opt ->
+      match ind_opt with
+      | None -> raise (TypeError (RecArgNotInductive (def.def_name, idx)))
+      | Some _ -> ())
+    rec_args rec_param_inductives;
+  let rec check_term allowed t =
+    match t with
+    | Var x | Global x ->
+        if String.equal x def.def_name then
+          raise (TypeError (TerminationCheckFailed def.def_name))
         | Universe _ | PrimType _ | Literal _ -> ()
         | Pi { arg; result } ->
             check_term allowed arg.ty;
@@ -500,6 +555,8 @@ let check_termination (def : def_decl) : unit =
                 let allowed' =
                   match rec_idx with
                   | Some idx ->
+                      let idx_is_rec = List.mem idx rec_args in
+                      if not idx_is_rec then raise (TypeError (TerminationCheckFailed def.def_name));
                       let names = List.map (fun a -> a.arg_name) c.pattern.args in
                       update_allowed allowed idx names
                   | None -> allowed

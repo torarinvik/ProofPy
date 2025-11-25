@@ -21,7 +21,7 @@ let check_cmd =
         Fmt.pr "Declarations: %d@." (List.length mod_.declarations);
         match Certijson.Typing.check_module mod_ with
         | Error e ->
-            Fmt.epr "Type error: %s@." (Certijson.Typing.show_typing_error e);
+            Fmt.epr "Type error: %s@." (Certijson.Typing.string_of_typing_error e);
             `Error (false, "type checking failed")
         | Ok _sig ->
             Fmt.pr "✓ Module type-checked successfully@.";
@@ -66,7 +66,7 @@ let eval_cmd =
     | Ok mod_ ->
         match Certijson.Typing.check_module mod_ with
         | Error e ->
-            Fmt.epr "Type error: %s@." (Certijson.Typing.show_typing_error e);
+            Fmt.epr "Type error: %s@." (Certijson.Typing.string_of_typing_error e);
             `Error (false, "type checking failed")
         | Ok sig_ ->
             let ctx = Certijson.Context.make_ctx sig_ in
