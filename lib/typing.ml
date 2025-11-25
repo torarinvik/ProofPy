@@ -23,6 +23,7 @@ type typing_error =
   | UnknownConstructor of name
   | UnknownInductive of name
   | RoleMismatch of name * role * role  (* name, expected, actual *)
+  | InDeclaration of name * typing_error
 [@@deriving show]
 
 exception TypeError of typing_error
@@ -161,7 +162,7 @@ let string_of_role = function
   | ProofOnly -> "proof-only"
   | Both -> "both"
 
-let string_of_typing_error (err : typing_error) : string =
+let rec string_of_typing_error (err : typing_error) : string =
   let pp_term = Pretty.term_to_string in
   match err with
   | UnboundVariable x -> Format.sprintf "Unbound variable %s" x
@@ -191,6 +192,8 @@ let string_of_typing_error (err : typing_error) : string =
   | RoleMismatch (name, expected, actual) ->
       Format.sprintf "Role mismatch for %s: expected %s but found %s"
         name (string_of_role expected) (string_of_role actual)
+  | InDeclaration (name, err) ->
+      Format.sprintf "While checking %s: %s" name (string_of_typing_error err)
 
 (** Positivity checking: ensure inductive appears only in strictly positive positions. *)
 let rec positive_occurrences (target : name) (positive : bool) (t : term) : bool =
@@ -570,44 +573,51 @@ let check_termination (def : def_decl) : unit =
 
 (** Check a single declaration. *)
 let check_declaration (ctx : context) (decl : declaration) : unit =
+  let with_decl name f =
+    try f () with
+    | TypeError e -> raise (TypeError (InDeclaration (name, e)))
+  in
   match decl with
   | Inductive ind ->
-      (* Check parameter types *)
-      let ctx' =
-        List.fold_left
-          (fun c p ->
-            let _ = check c p.ty (Universe Type) in
-            extend c p.name p.ty)
-          ctx ind.params
-      in
-      (* Check constructor types (simplified - full check needs positivity) *)
-      List.iter
-        (fun ctor ->
-          List.iter
-            (fun arg -> check ctx' arg.ty (Universe Type))
-            ctor.ctor_args)
-        ind.constructors
-      (* Strict positivity: inductive must not appear in negative position in args. *)
-      ;
-      List.iter
-        (fun ctor ->
-          List.iter
-            (fun arg ->
-              if not (positive_occurrences ind.ind_name true arg.ty) then
-                raise (TypeError (PositivityCheckFailed (ind.ind_name, arg.name))))
-            ctor.ctor_args)
-        ind.constructors
+      with_decl ind.ind_name (fun () ->
+        (* Check parameter types *)
+        let ctx' =
+          List.fold_left
+            (fun c p ->
+              let _ = check c p.ty (Universe Type) in
+              extend c p.name p.ty)
+            ctx ind.params
+        in
+        (* Check constructor types (simplified - full check needs positivity) *)
+        List.iter
+          (fun ctor ->
+            List.iter
+              (fun arg -> check ctx' arg.ty (Universe Type))
+              ctor.ctor_args)
+          ind.constructors;
+        (* Strict positivity: inductive must not appear in negative position in args. *)
+        List.iter
+          (fun ctor ->
+            List.iter
+              (fun arg ->
+                if not (positive_occurrences ind.ind_name true arg.ty) then
+                  raise (TypeError (PositivityCheckFailed (ind.ind_name, arg.name))))
+              ctor.ctor_args)
+          ind.constructors)
   | Definition def ->
-      let _ = check ctx def.def_type (Universe Type) in
-      check ctx def.def_body def.def_type
-      ; check_termination def
+      with_decl def.def_name (fun () ->
+        let _ = check ctx def.def_type (Universe Type) in
+        check ctx def.def_body def.def_type;
+        check_termination def)
   | Theorem thm ->
-      let _ = check ctx thm.thm_type (Universe Prop) in
-      check ctx thm.thm_proof thm.thm_type
+      with_decl thm.thm_name (fun () ->
+        let _ = check ctx thm.thm_type (Universe Prop) in
+        check ctx thm.thm_proof thm.thm_type)
   | Repr _ -> ()  (* Repr declarations are not type-checked in the logical sense *)
   | ExternC ext ->
-      let _ = check ctx ext.logical_type (Universe Type) in
-      ()
+      with_decl ext.extern_name (fun () ->
+        let _ = check ctx ext.logical_type (Universe Type) in
+        ())
 
 (** Check an entire module. *)
 let check_module (mod_ : module_decl) : (signature, typing_error) result =

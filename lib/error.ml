@@ -65,3 +65,27 @@ let ( let* ) = Result.bind
 let map_error f = function
   | Ok x -> Ok x
   | Error e -> Error (f e)
+
+(** {1 Converting from component errors} *)
+
+let parse_error_location ?file = function
+  | Json_parser.JsonError msg -> (
+      (* Attempt to extract line number from Yojson's "Line n, bytes ..." message. *)
+      match Scanf.sscanf_opt msg "Line %d, bytes %d-%d:%!" (fun line _ _ -> line) with
+      | Some line -> { file; line = Some line; column = None }
+      | None -> { file; line = None; column = None })
+  | _ -> { file; line = None; column = None }
+
+let error_of_parse ?file (e : Json_parser.parse_error) : error =
+  {
+    kind = ParseError e;
+    location = parse_error_location ?file e;
+    message = Json_parser.show_parse_error e;
+  }
+
+let error_of_typing ?file (e : Typing.typing_error) : error =
+  {
+    kind = TypingError e;
+    location = { file; line = None; column = None };
+    message = Typing.string_of_typing_error e;
+  }

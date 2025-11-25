@@ -2,6 +2,8 @@
 
 open Cmdliner
 
+module CJ = Certijson
+
 (** {1 Commands} *)
 
 let check_cmd =
@@ -10,18 +12,20 @@ let check_cmd =
     Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE" ~doc)
   in
   let check file =
-    match Certijson.Json_parser.parse_file file with
+    match CJ.Json_parser.parse_file file with
     | Error e ->
-        Fmt.epr "Parse error: %s@." (Certijson.Json_parser.show_parse_error e);
+        let err = CJ.Error.error_of_parse ~file e in
+        Fmt.epr "%a@." CJ.Error.pp_error err;
         `Error (false, "parsing failed")
     | Ok mod_ ->
         Fmt.pr "Parsed module: %s@." mod_.module_name;
         Fmt.pr "Imports: %a@."
           Fmt.(list ~sep:comma string) mod_.imports;
         Fmt.pr "Declarations: %d@." (List.length mod_.declarations);
-        match Certijson.Typing.check_module mod_ with
+        match CJ.Typing.check_module mod_ with
         | Error e ->
-            Fmt.epr "Type error: %s@." (Certijson.Typing.string_of_typing_error e);
+            let err = CJ.Error.error_of_typing ~file e in
+            Fmt.epr "%a@." CJ.Error.pp_error err;
             `Error (false, "type checking failed")
         | Ok _sig ->
             Fmt.pr "✓ Module type-checked successfully@.";
@@ -37,12 +41,13 @@ let parse_cmd =
     Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE" ~doc)
   in
   let parse file =
-    match Certijson.Json_parser.parse_file file with
+    match CJ.Json_parser.parse_file file with
     | Error e ->
-        Fmt.epr "Parse error: %s@." (Certijson.Json_parser.show_parse_error e);
+        let err = CJ.Error.error_of_parse ~file e in
+        Fmt.epr "%a@." CJ.Error.pp_error err;
         `Error (false, "parsing failed")
     | Ok mod_ ->
-        Fmt.pr "%s@." (Certijson.Pretty.module_to_string mod_);
+        Fmt.pr "%s@." (CJ.Pretty.module_to_string mod_);
         `Ok ()
   in
   let doc = "Parse and pretty-print a CertiJSON source file." in
@@ -59,20 +64,22 @@ let eval_cmd =
     Arg.(required & pos 1 (some string) None & info [] ~docv:"NAME" ~doc)
   in
   let do_eval file def_name =
-    match Certijson.Json_parser.parse_file file with
+    match CJ.Json_parser.parse_file file with
     | Error e ->
-        Fmt.epr "Parse error: %s@." (Certijson.Json_parser.show_parse_error e);
+        let err = CJ.Error.error_of_parse ~file e in
+        Fmt.epr "%a@." CJ.Error.pp_error err;
         `Error (false, "parsing failed")
     | Ok mod_ ->
-        match Certijson.Typing.check_module mod_ with
+        match CJ.Typing.check_module mod_ with
         | Error e ->
-            Fmt.epr "Type error: %s@." (Certijson.Typing.string_of_typing_error e);
+            let err = CJ.Error.error_of_typing ~file e in
+            Fmt.epr "%a@." CJ.Error.pp_error err;
             `Error (false, "type checking failed")
         | Ok sig_ ->
-            let ctx = Certijson.Context.make_ctx sig_ in
-            let term = Certijson.Syntax.Global def_name in
-            let result = Certijson.Eval.normalize ctx term in
-            Fmt.pr "%s@." (Certijson.Pretty.term_to_string result);
+            let ctx = CJ.Context.make_ctx sig_ in
+            let term = CJ.Syntax.Global def_name in
+            let result = CJ.Eval.normalize ctx term in
+            Fmt.pr "%s@." (CJ.Pretty.term_to_string result);
             `Ok ()
   in
   let doc = "Evaluate a definition from a CertiJSON source file." in
