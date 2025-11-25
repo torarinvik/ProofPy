@@ -66,7 +66,7 @@ let rec whnf (ctx : context) (t : term) : term =
           if remaining = [] then whnf ctx body'
           else whnf ctx (mk ?loc:t.loc (App (body', remaining)))
       | _ -> mk ?loc:t.loc (App (f', args)))
-  | Global name -> (
+  | Var name | Global name -> (
       match lookup ctx name with
       | Some (`Global (GDefinition def)) when def.def_role <> ProofOnly ->
           whnf ctx def.def_body
@@ -74,7 +74,7 @@ let rec whnf (ctx : context) (t : term) : term =
   | Match { scrutinee; cases; _ } -> (
       let scrut' = whnf ctx scrutinee in
       match scrut'.desc with
-      | App ({ desc = Global ctor_name; _ }, ctor_args) -> (
+      | App ({ desc = Global ctor_name | Var ctor_name; _ }, ctor_args) -> (
           match
             List.find_opt (fun c -> String.equal c.pattern.ctor ctor_name) cases
           with
@@ -91,7 +91,7 @@ let rec whnf (ctx : context) (t : term) : term =
           | None ->
               mk ?loc:t.loc
                 (Match { scrutinee = scrut'; motive = t; as_name = None; cases; coverage_hint = Unknown }))
-      | Global ctor_name -> (
+      | Global ctor_name | Var ctor_name -> (
           match
             List.find_opt (fun c -> String.equal c.pattern.ctor ctor_name) cases
           with
@@ -504,7 +504,13 @@ let check_termination (def : def_decl) : unit =
         match List.nth_opt params idx with
         | None -> raise (TypeError (InvalidRecursiveArg (def.def_name, idx)))
         | Some b -> (
-            match (whnf (make_ctx (empty_sig ())) b.ty).desc with
+            let ty_whnf = whnf (make_ctx (empty_sig ())) b.ty in
+            (* Handle both plain inductives (Nat) and parameterized ones (List A) *)
+            let head = match ty_whnf.desc with
+              | App (f, _) -> f
+              | _ -> ty_whnf
+            in
+            match head.desc with
             | Var n | Global n -> Some n
             | _ -> None))
       rec_args

@@ -1,0 +1,148 @@
+{
+  "module": "Std.List",
+  "imports": [],
+  "declarations": [
+    {
+      "inductive": {
+        "name": "Nat",
+        "params": [],
+        "universe": "Type",
+        "constructors": [
+          { "name": "zero", "args": [] },
+          { "name": "succ", "args": [{ "name": "n", "type": { "var": "Nat" } }] }
+        ]
+      }
+    },
+    {
+      "inductive": {
+        "name": "List",
+        "params": [{ "name": "A", "type": { "universe": "Type" } }],
+        "universe": "Type",
+        "constructors": [
+          { "name": "nil", "args": [] },
+          {
+            "name": "cons",
+            "args": [
+              { "name": "x", "type": { "var": "A" } },
+              { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "def": {
+        "name": "length",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                "result": { "var": "Nat" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                "body": {
+                  "match": {
+                    "scrutinee": { "var": "xs" },
+                    "motive": { "var": "Nat" },
+                    "as": "z",
+                    "cases": [
+                      {
+                        "pattern": { "ctor": "nil", "args": [] },
+                        "body": { "var": "zero" }
+                      },
+                      {
+                        "pattern": { "ctor": "cons", "args": [{ "name": "x" }, { "name": "rest" }] },
+                        "body": {
+                          "app": [
+                            { "var": "succ" },
+                            { "app": [{ "var": "length" }, { "var": "A" }, { "var": "rest" }] }
+                          ]
+                        }
+                      }
+                    ],
+                    "coverage_hint": "complete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "rec_args": [1]
+      }
+    },
+    {
+      "def": {
+        "name": "append",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "ys", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                    "result": { "app": [{ "var": "List" }, { "var": "A" }] }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "ys", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                    "body": {
+                      "match": {
+                        "scrutinee": { "var": "xs" },
+                        "motive": { "app": [{ "var": "List" }, { "var": "A" }] },
+                        "as": "z",
+                        "cases": [
+                          {
+                            "pattern": { "ctor": "nil", "args": [] },
+                            "body": { "var": "ys" }
+                          },
+                          {
+                            "pattern": { "ctor": "cons", "args": [{ "name": "h" }, { "name": "t" }] },
+                            "body": {
+                              "app": [
+                                { "var": "cons" },
+                                { "var": "A" },
+                                { "var": "h" },
+                                { "app": [{ "var": "append" }, { "var": "A" }, { "var": "t" }, { "var": "ys" }] }
+                              ]
+                            }
+                          }
+                        ],
+                        "coverage_hint": "complete"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "rec_args": [1]
+      }
+    }
+  ]
+}

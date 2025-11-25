@@ -1,0 +1,92 @@
+{
+  "module": "Std.Bool",
+  "imports": [],
+  "declarations": [
+    {
+      "inductive": {
+        "name": "Bool",
+        "params": [],
+        "universe": "Type",
+        "constructors": [
+          { "name": "true", "args": [] },
+          { "name": "false", "args": [] }
+        ]
+      }
+    },
+    {
+      "def": {
+        "name": "not",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "b", "type": { "var": "Bool" } },
+            "result": { "var": "Bool" }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "b", "type": { "var": "Bool" } },
+            "body": {
+              "match": {
+                "scrutinee": { "var": "b" },
+                "motive": { "var": "Bool" },
+                "as": "z",
+                "cases": [
+                  {
+                    "pattern": { "ctor": "true", "args": [] },
+                    "body": { "var": "false" }
+                  },
+                  {
+                    "pattern": { "ctor": "false", "args": [] },
+                    "body": { "var": "true" }
+                  }
+                ],
+                "coverage_hint": "complete"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "theorem": {
+        "name": "true_eq_true",
+        "type": {
+          "eq": {
+            "type": { "var": "Bool" },
+            "lhs": { "var": "true" },
+            "rhs": { "var": "true" }
+          }
+        },
+        "proof": {
+          "refl": {
+            "eq": {
+              "type": { "var": "Bool" },
+              "lhs": { "var": "true" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "theorem": {
+        "name": "not_not_true",
+        "type": {
+          "eq": {
+            "type": { "var": "Bool" },
+            "lhs": { "app": [{ "var": "not" }, { "app": [{ "var": "not" }, { "var": "true" }] }] },
+            "rhs": { "var": "true" }
+          }
+        },
+        "proof": {
+          "refl": {
+            "eq": {
+              "type": { "var": "Bool" },
+              "lhs": { "var": "true" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
