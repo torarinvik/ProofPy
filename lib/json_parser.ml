@@ -166,6 +166,20 @@ let rec parse_term ~(file : string option) (json : json) : term =
             | _ -> raise (ParseError (InvalidValue ("universe", u))));
         loc;
       }
+  | _ when has_field json "prim" ->
+      let p = get_string (get_field json "prim") in
+      {
+        desc =
+          PrimType
+            (match p with
+            | "Int32" -> Int32
+            | "Int64" -> Int64
+            | "Float64" -> Float64
+            | "Bool" -> Bool
+            | "Size" -> Size
+            | _ -> raise (ParseError (InvalidValue ("prim", p))));
+        loc;
+      }
   | _ when has_field json "pi" ->
       let pi = get_field json "pi" in
       let arg_json = get_field pi "arg" in

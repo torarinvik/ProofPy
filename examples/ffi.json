@@ -1,0 +1,55 @@
+{
+  "module": "FFI_Test",
+  "imports": [],
+  "declarations": [
+    {
+      "repr": {
+        "name": "Int32Repr",
+        "kind": "primitive",
+        "c_type": "int32_t",
+        "size_bits": 32,
+        "signed": true
+      }
+    },
+    {
+      "repr": {
+        "name": "Point2DRepr",
+        "kind": "struct",
+        "c_struct_name": "Point2D",
+        "size_bytes": 8,
+        "align_bytes": 4,
+        "fields": [
+          { "name": "x", "repr": "Int32Repr", "offset_bytes": 0 },
+          { "name": "y", "repr": "Int32Repr", "offset_bytes": 4 }
+        ]
+      }
+    },
+    {
+      "extern_c": {
+        "name": "c_add",
+        "c_name": "add",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Int32Repr" },
+          "args": [
+            { "name": "a", "repr": "Int32Repr" },
+            { "name": "b", "repr": "Int32Repr" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Int32" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    }
+  ]
+}

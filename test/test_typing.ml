@@ -435,6 +435,98 @@ let test_refl_type_mismatch () =
       | Error (Typing.InDeclaration ("bad_theorem", _, Typing.TypeMismatch _)) -> ()
       | Error e -> fail (Typing.string_of_typing_error e))
 
+let test_ffi_validation () =
+  let json = {|
+    {
+      "module": "FFI_Test",
+      "imports": [],
+      "declarations": [
+        {
+          "repr": {
+            "name": "Int32Repr",
+            "kind": "primitive",
+            "c_type": "int32_t",
+            "size_bits": 32,
+            "signed": true
+          }
+        },
+        {
+          "extern_c": {
+            "name": "c_add",
+            "c_name": "add",
+            "header": "<math.h>",
+            "signature": {
+              "return": { "repr": "Int32Repr" },
+              "args": [
+                { "name": "a", "repr": "Int32Repr" },
+                { "name": "b", "repr": "Int32Repr" }
+              ]
+            },
+            "type": {
+              "pi": {
+                "arg": { "name": "a", "type": { "prim": "Int32" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "b", "type": { "prim": "Int32" } },
+                    "result": { "prim": "Int32" }
+                  }
+                }
+              }
+            },
+            "safety": "pure",
+            "axioms": []
+          }
+        }
+      ]
+    }
+  |} in
+  match Json_parser.parse_string json with
+  | Error e -> fail (Json_parser.show_parse_error e)
+  | Ok m -> (
+      match Typing.check_module m with
+      | Error e -> fail (Typing.string_of_typing_error e)
+      | Ok _ -> ())
+
+let test_ffi_error () =
+  let json = {|
+    {
+      "module": "FFI_Error",
+      "imports": [],
+      "declarations": [
+        {
+          "repr": {
+            "name": "Int32Repr",
+            "kind": "primitive",
+            "c_type": "int32_t",
+            "size_bits": 32,
+            "signed": true
+          }
+        },
+        {
+          "repr": {
+            "name": "BadStruct",
+            "kind": "struct",
+            "c_struct_name": "BadStruct",
+            "size_bytes": 8,
+            "align_bytes": 4,
+            "fields": [
+              { "name": "x", "repr": "Int32Repr", "offset_bytes": 0 },
+              { "name": "y", "repr": "Int32Repr", "offset_bytes": 2 }
+            ]
+          }
+        }
+      ]
+    }
+  |} in
+  match Json_parser.parse_string json with
+  | Error e -> fail (Json_parser.show_parse_error e)
+  | Ok m -> (
+      match Typing.check_module m with
+      | Ok _ -> fail "expected invalid repr error"
+      | Error (Typing.InvalidRepr ("BadStruct", _)) -> ()
+      | Error (Typing.InDeclaration ("BadStruct", _, Typing.InvalidRepr ("BadStruct", _))) -> ()
+      | Error e -> fail (Typing.string_of_typing_error e))
+
 let () =
   run "Typing" [
     "basic", [
@@ -449,5 +541,9 @@ let () =
       test_case "simple refl theorem" `Quick test_simple_refl_theorem;
       test_case "computational refl theorem" `Quick test_computational_refl_theorem;
       test_case "refl type mismatch" `Quick test_refl_type_mismatch;
+    ];
+    "ffi", [
+      test_case "ffi validation" `Quick test_ffi_validation;
+      test_case "ffi error" `Quick test_ffi_error;
     ]
   ]

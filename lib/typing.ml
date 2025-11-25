@@ -23,6 +23,8 @@ type typing_error =
   | UnknownConstructor of name
   | UnknownInductive of name
   | RoleMismatch of name * role * role  (* name, expected, actual *)
+  | InvalidRepr of name * string
+  | InvalidExternC of name * string
   | InDeclaration of name * Loc.t option * typing_error
 [@@deriving show]
 
@@ -194,6 +196,10 @@ let rec string_of_typing_error (err : typing_error) : string =
   | RoleMismatch (name, expected, actual) ->
       Format.sprintf "Role mismatch for %s: expected %s but found %s"
         name (string_of_role expected) (string_of_role actual)
+  | InvalidRepr (name, msg) ->
+      Format.sprintf "Invalid representation %s: %s" name msg
+  | InvalidExternC (name, msg) ->
+      Format.sprintf "Invalid extern_c %s: %s" name msg
   | InDeclaration (name, _loc, err) ->
       Format.sprintf "While checking %s: %s" name (string_of_typing_error err)
 
@@ -596,6 +602,51 @@ let check_termination (def : def_decl) : unit =
 
 (** {1 Declaration Checking} *)
 
+let check_repr (ctx : context) (repr : repr_decl) : unit =
+  match repr.kind with
+  | Primitive { size_bits; _ } ->
+      if size_bits <= 0 then
+        raise (TypeError (InvalidRepr (repr.repr_name, "size must be positive")))
+  | Struct { fields; size_bytes; _ } ->
+      (* Check fields *)
+      let _ = List.fold_left (fun offset field ->
+        if field.offset_bytes < offset then
+          raise (TypeError (InvalidRepr (repr.repr_name, Printf.sprintf "overlapping field %s" field.field_name)));
+        (* Lookup field repr *)
+        let field_size =
+          match lookup ctx field.field_repr with
+          | Some (`Global (GRepr r)) -> (
+              match r.kind with
+              | Primitive p -> p.size_bits / 8
+              | Struct s -> s.size_bytes
+            )
+          | _ -> raise (TypeError (InvalidRepr (repr.repr_name, Printf.sprintf "unknown repr %s for field %s" field.field_repr field.field_name)))
+        in
+        if field.offset_bytes + field_size > size_bytes then
+          raise (TypeError (InvalidRepr (repr.repr_name, Printf.sprintf "field %s exceeds struct size" field.field_name)));
+        field.offset_bytes + field_size
+      ) 0 fields in
+      ()
+
+let check_extern_c (ctx : context) (ext : extern_c_decl) : unit =
+  (* Check return repr *)
+  (match ext.return_repr with
+  | Some r -> (
+      match lookup ctx r with
+      | Some (`Global (GRepr _)) -> ()
+      | _ -> raise (TypeError (InvalidExternC (ext.extern_name, Printf.sprintf "unknown return repr %s" r)))
+    )
+  | None -> ());
+  (* Check arg reprs *)
+  List.iter (fun arg ->
+    match lookup ctx arg.extern_arg_repr with
+    | Some (`Global (GRepr _)) -> ()
+    | _ -> raise (TypeError (InvalidExternC (ext.extern_name, Printf.sprintf "unknown arg repr %s for %s" arg.extern_arg_repr arg.extern_arg_name)))
+  ) ext.args;
+  (* Check logical type *)
+  let _ = check ctx ext.logical_type (mk ?loc:ext.extern_loc (Universe Type)) in
+  ()
+
 (** Check a single declaration. *)
 let check_declaration (ctx : context) (decl : declaration) : unit =
   let with_decl name loc f =
@@ -638,11 +689,10 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
       with_decl thm.thm_name thm.thm_loc (fun () ->
         let _ = check ctx thm.thm_type (mk ?loc:thm.thm_loc (Universe Prop)) in
         check ctx thm.thm_proof thm.thm_type)
-  | Repr _ -> ()  (* Repr declarations are not type-checked in the logical sense *)
+  | Repr repr ->
+      with_decl repr.repr_name repr.repr_loc (fun () -> check_repr ctx repr)
   | ExternC ext ->
-      with_decl ext.extern_name ext.extern_loc (fun () ->
-        let _ = check ctx ext.logical_type (mk ?loc:ext.extern_loc (Universe Type)) in
-        ())
+      with_decl ext.extern_name ext.extern_loc (fun () -> check_extern_c ctx ext)
 
 (** Check an entire module. *)
 let check_module (mod_ : module_decl) : (signature, typing_error) result =
