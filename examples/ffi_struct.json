@@ -1,0 +1,89 @@
+{
+  "module": "FFI.Struct",
+  "imports": ["Std.IO"],
+  "declarations": [
+    {
+      "repr": {
+        "name": "CInt",
+        "kind": "primitive",
+        "c_type": "int",
+        "size_bits": 32,
+        "signed": true
+      }
+    },
+    {
+      "repr": {
+        "name": "Point",
+        "kind": "primitive",
+        "c_type": "struct Point",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "extern_c": {
+        "name": "make_point",
+        "c_name": "make_point",
+        "header": "<certijson_io.h>",
+        "signature": {
+            "args": [
+                { "name": "x", "repr": "CInt" },
+                { "name": "y", "repr": "CInt" }
+            ],
+            "return": { "repr": "Point" }
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Int32" } },
+            "result": {
+                "pi": {
+                    "arg": { "name": "y", "type": { "prim": "Int32" } },
+                    "result": { "var": "Point" }
+                }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "print_point",
+        "c_name": "print_point",
+        "header": "<certijson_io.h>",
+        "signature": {
+            "args": [{ "name": "p", "repr": "Point" }],
+            "return": null
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "p", "type": { "var": "Point" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "Unit" }] }
+          }
+        },
+        "safety": "impure",
+        "axioms": []
+      }
+    },
+    {
+        "def": {
+            "name": "main",
+            "role": "runtime",
+            "type": { "app": [{ "var": "IO" }, { "var": "Unit" }] },
+            "body": {
+                "app": [
+                    { "var": "print_point" },
+                    { 
+                        "app": [
+                            { "var": "make_point" },
+                            { "int32": 10 },
+                            { "int32": 20 }
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+  ]
+}

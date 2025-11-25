@@ -22,6 +22,7 @@ type c_expr =
   | CLitBool of bool
   | CLitString of string
   | CCall of string * c_expr list
+  | CAssign of string * c_expr
 
 type c_stmt =
   | CReturn of c_expr
@@ -64,6 +65,7 @@ let rec pp_c_expr fmt = function
   | CCall (f, args) ->
       Format.fprintf fmt "%s(%a)" f
         (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") pp_c_expr) args
+  | CAssign (v, e) -> Format.fprintf fmt "%s = %a" v pp_c_expr e
 
 let rec pp_c_stmt fmt = function
   | CReturn e -> Format.fprintf fmt "return %a;" pp_c_expr e
@@ -107,15 +109,34 @@ let translate_prim_type = function
   | Syntax.String -> CString
   | Syntax.Size -> CInt64 (* Approximation *)
 
+let translate_repr (ctx : Context.context) (name : string) : c_type =
+  match Context.lookup ctx name with
+  | Some (`Global (GRepr { kind = Primitive { c_type; _ }; _ })) ->
+      if String.equal c_type "int" then CInt32
+      else if String.equal c_type "double" then CDouble
+      else if String.equal c_type "char*" then CString
+      else CUserType c_type
+  | Some (`Global (GRepr { kind = Struct { c_struct_name; _ }; _ })) ->
+      CStruct c_struct_name
+  | _ -> CUserType name
+
 let rec translate_type (ctx : Context.context) (t : Syntax.term) : c_type =
+  let is_global name t =
+    match t.desc with
+    | Global n | Var n -> String.equal n name
+    | _ -> false
+  in
   match t.desc with
   | PrimType p -> translate_prim_type p
   | Universe _ -> CVoid (* Erased *)
-  | App ({ desc = Global "IO"; _ }, [arg]) ->
+  | App (f, [arg]) when is_global "IO" f ->
       (* IO A -> A (or void if A is Unit) *)
       translate_type ctx arg
-  | Global "Unit" -> CVoid
-  | Global name -> CUserType name (* Assuming struct or typedef exists *)
+  | Global "Unit" | Var "Unit" -> CVoid
+  | Global name | Var name -> 
+      (match Context.lookup ctx name with
+       | Some (`Global (GRepr _)) -> translate_repr ctx name
+       | _ -> CUserType name)
   | _ -> CVoid (* Fallback *)
 
 let rec translate_term (ctx : Context.context) (t : Syntax.term) : c_expr =
@@ -152,21 +173,83 @@ let rec returns_universe (t : Syntax.term) : bool =
   | Pi { result; _ } -> returns_universe result
   | _ -> false
 
+let rec translate_io (ctx : Context.context) (t : Syntax.term) (res_var : string option) : c_stmt list =
+  let is_global name t =
+    match t.desc with
+    | Global n | Var n -> String.equal n name
+    | _ -> false
+  in
+  match t.desc with
+  | App (f, [_; _; m; lam]) when is_global "bind" f ->
+      (match lam.desc with
+       | Lambda { arg; body } ->
+           let var_name = arg.name in (* TODO: fresh name *)
+           let ty = translate_type ctx arg.ty in
+           let res_var_for_m = if ty = CVoid then None else Some var_name in
+           let m_stmts = translate_io ctx m res_var_for_m in
+           let decl = 
+             if ty = CVoid then [] 
+             else [CDecl (ty, var_name, None)]
+           in
+           let f_stmts = translate_io ctx body res_var in
+           m_stmts @ decl @ f_stmts
+       | _ -> [CExpr (CVar "/* bind with non-lambda */")]
+      )
+  | App (f, [_; x]) when is_global "return" f ->
+      (match res_var with
+       | Some v -> [CExpr (CAssign (v, translate_term ctx x))]
+       | None -> []
+      )
+  | App (_, _) ->
+      let call = translate_term ctx t in
+      (match res_var with
+       | Some v -> [CExpr (CAssign (v, call))] 
+       | None -> [CExpr call]
+      )
+  | _ -> 
+      Format.eprintf "translate_io fallback: %a@." Syntax.pp_term t;
+      [CExpr (translate_term ctx t)]
+
 let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option =
   if def.def_role = Syntax.ProofOnly || returns_universe def.def_type then None
   else
     let ret_type = translate_type ctx def.def_type in
-    let body_expr = translate_term ctx def.def_body in
-    let stmt =
-      if ret_type = CVoid then CExpr body_expr
-      else CReturn body_expr
+    let is_io = 
+      match def.def_type.desc with
+      | App (f, _) -> 
+          (match f.desc with
+           | Global "IO" | Var "IO" -> true
+           | _ -> false)
+      | _ -> false
     in
-    Some {
-      name = def.def_name;
-      ret_type;
-      args = []; (* TODO: Handle arguments *)
-      body = CBlock [stmt];
-    }
+    if is_io then
+      let body_stmts = translate_io ctx def.def_body None in
+      if String.equal def.def_name "main" then
+        Some {
+          name = "main";
+          ret_type = CInt32; (* int main *)
+          args = [];
+          body = CBlock (body_stmts @ [CReturn (CLitInt32 0l)]);
+        }
+      else
+        Some {
+          name = def.def_name;
+          ret_type = CVoid; (* IO Unit -> void *)
+          args = [];
+          body = CBlock body_stmts;
+        }
+    else
+      let body_expr = translate_term ctx def.def_body in
+      let stmt =
+        if ret_type = CVoid then CExpr body_expr
+        else CReturn body_expr
+      in
+      Some {
+        name = def.def_name;
+        ret_type;
+        args = []; (* TODO: Handle arguments *)
+        body = CBlock [stmt];
+      }
 
 let extract_module (mod_ : Syntax.module_decl) (sig_ : Context.signature) : c_program =
   let mod_sig = Context.build_signature mod_.declarations in
@@ -178,6 +261,29 @@ let extract_module (mod_ : Syntax.module_decl) (sig_ : Context.signature) : c_pr
       | _ -> None
     ) mod_.declarations
   in
-  let includes = ["<stdio.h>"; "<stdint.h>"; "<stdbool.h>"; "<certijson_io.h>"] in
-  { includes; structs = []; funcs }
+  let base_includes = ["<stdio.h>"; "<stdint.h>"; "<stdbool.h>"; "<certijson_io.h>"] in
+  let extra_includes =
+    let collect_includes acc = function
+      | Syntax.ExternC { header; _ } -> if List.mem header acc then acc else header :: acc
+      | Syntax.ExternIO { header; _ } -> if List.mem header acc then acc else header :: acc
+      | _ -> acc
+    in
+    List.fold_left collect_includes [] mod_.declarations
+  in
+  let structs =
+    List.filter_map (function
+      | Syntax.Repr { kind = Struct { c_struct_name; fields; _ }; _ } ->
+          let fields_str =
+            List.map (fun f ->
+              let ty = translate_repr ctx f.field_repr in
+              Format.asprintf "%a %s;" pp_c_type ty f.field_name
+            ) fields
+            |> String.concat " "
+          in
+          Some (Printf.sprintf "struct %s { %s };" c_struct_name fields_str)
+      | _ -> None
+    ) mod_.declarations
+  in
+  let includes = base_includes @ extra_includes in
+  { includes; structs; funcs }
 

@@ -1,0 +1,72 @@
+{
+  "module": "Raylib",
+  "imports": ["Std.IO"],
+  "declarations": [
+    {
+      "repr": {
+        "name": "CInt",
+        "kind": "primitive",
+        "c_type": "int",
+        "size_bits": 32,
+        "signed": true
+      }
+    },
+    {
+      "repr": {
+        "name": "Vector2",
+        "kind": "primitive",
+        "c_type": "Vector2",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "extern_c": {
+        "name": "DrawPixel",
+        "c_name": "DrawPixel",
+        "header": "<certijson_io.h>",
+        "signature": {
+            "args": [
+                { "name": "x", "repr": "CInt" },
+                { "name": "y", "repr": "CInt" },
+                { "name": "color", "repr": "CInt" }
+            ],
+            "return": null
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Int32" } },
+            "result": {
+                "pi": {
+                    "arg": { "name": "y", "type": { "prim": "Int32" } },
+                    "result": {
+                        "pi": {
+                            "arg": { "name": "color", "type": { "prim": "Int32" } },
+                            "result": { "app": [{ "var": "IO" }, { "var": "Unit" }] }
+                        }
+                    }
+                }
+            }
+          }
+        },
+        "safety": "impure",
+        "axioms": []
+      }
+    },
+    {
+        "def": {
+            "name": "main",
+            "role": "runtime",
+            "type": { "app": [{ "var": "IO" }, { "var": "Unit" }] },
+            "body": {
+                "app": [
+                    { "var": "DrawPixel" },
+                    { "int32": 100 },
+                    { "int32": 200 },
+                    { "int32": -1 } 
+                ]
+            }
+        }
+    }
+  ]
+}

@@ -339,7 +339,7 @@ let rec infer (ctx : context) (t : term) : term =
       | Some (`Global (GExternC ext)) -> ext.logical_type
       | Some (`Global (GExternIO ext)) -> ext.logical_type
       | Some (`Global (GRepr _)) ->
-          raise (TypeError (TypeMismatch { expected = mk ?loc:t.loc (Universe Type); actual = t; context = "repr is not a term"; loc = t.loc }))
+          mk ?loc:t.loc (Universe Type)
       | None -> raise (TypeError (UnboundVariable x)))
   | Universe Type -> mk ?loc:t.loc (Universe Type)  (* Type : Type - impredicative for simplicity *)
   | Universe Prop -> mk ?loc:t.loc (Universe Type)  (* Prop : Type *)

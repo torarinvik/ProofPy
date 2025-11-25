@@ -420,7 +420,11 @@ let parse_extern_c ~(file : string option) (json : json) : extern_c_decl =
   let sig_json = get_field json "signature" in
   let return_repr =
     match get_field_opt sig_json "return" with
-    | Some r -> Some (get_string (get_field r "repr"))
+    | Some r -> (
+        match r.value with
+        | JNull -> None
+        | _ -> Some (get_string (get_field r "repr"))
+      )
     | None -> None
   in
   let args =

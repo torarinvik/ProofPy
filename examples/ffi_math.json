@@ -1,0 +1,84 @@
+{
+  "module": "FFIMath",
+  "imports": ["Std.IO"],
+  "declarations": [
+    {
+      "extern_c": {
+        "name": "c_sin",
+        "c_name": "sin",
+        "header": "<math.h>",
+        "signature": {
+          "args": [{ "name": "x", "repr": "Float64Repr" }],
+          "return": { "repr": "Float64Repr" }
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "repr": {
+        "name": "Float64Repr",
+        "kind": "primitive",
+        "c_type": "double",
+        "size_bits": 64,
+        "signed": true
+      }
+    },
+    {
+      "extern_c": {
+        "name": "float_to_string",
+        "c_name": "cj_float_to_string",
+        "header": "<certijson_io.h>",
+        "signature": {
+          "args": [{ "name": "f", "repr": "Float64Repr" }],
+          "return": { "repr": "StringRepr" }
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "f", "type": { "prim": "Float64" } },
+            "result": { "prim": "String" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "def": {
+        "name": "main",
+        "role": "runtime",
+        "type": { "app": [{ "var": "IO" }, { "var": "Unit" }] },
+        "body": {
+          "app": [
+            { "var": "bind" },
+            { "var": "Unit" },
+            { "var": "Unit" },
+            { "app": [{ "var": "print_line" }, { "string": "Calling sin(1.0)..." }] },
+            {
+              "lambda": {
+                "arg": { "name": "_", "type": { "var": "Unit" } },
+                "body": {
+                  "app": [
+                    { "var": "print_line" },
+                    {
+                      "app": [
+                        { "var": "float_to_string" },
+                        { "app": [{ "var": "c_sin" }, { "float64": 1.0 }] }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
