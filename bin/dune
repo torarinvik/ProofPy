@@ -1,0 +1,5 @@
+(executable
+ (name main)
+ (public_name certijson)
+ (package certijson)
+ (libraries certijson cmdliner fmt logs logs.fmt))

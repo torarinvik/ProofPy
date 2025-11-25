@@ -1,0 +1,312 @@
+(** Abstract syntax for CertiJSON core terms.
+    
+    This module defines the internal representation of CertiJSON programs
+    after parsing from JSON. *)
+
+(** {1 Identifiers} *)
+
+type name = string
+[@@deriving show, eq, yojson]
+
+type var = string
+[@@deriving show, eq, yojson]
+
+(** {1 Universes} *)
+
+type universe =
+  | Type  (** Computational types *)
+  | Prop  (** Propositions (erased at runtime) *)
+[@@deriving show, eq, yojson]
+
+(** {1 Primitive Types} *)
+
+type prim_type =
+  | Int32
+  | Int64
+  | Float64
+  | Bool
+  | Size
+[@@deriving show, eq, yojson]
+
+(** {1 Literals} *)
+
+type literal =
+  | LitInt32 of int32
+  | LitInt64 of int64
+  | LitFloat64 of float
+  | LitBool of bool
+[@@deriving show, eq, yojson]
+
+(** {1 Binders} *)
+
+type binder = {
+  name : name;
+  ty : term;
+}
+[@@deriving show, eq, yojson]
+
+(** {1 Pattern Matching} *)
+
+and pattern_arg = {
+  arg_name : name;
+}
+[@@deriving show, eq, yojson]
+
+and pattern = {
+  ctor : name;
+  args : pattern_arg list;
+}
+[@@deriving show, eq, yojson]
+
+and case = {
+  pattern : pattern;
+  body : term;
+}
+[@@deriving show, eq, yojson]
+
+and coverage_hint =
+  | Complete
+  | Unknown
+[@@deriving show, eq, yojson]
+
+(** {1 Terms} *)
+
+and term =
+  | Var of var
+      (** Variable reference *)
+  | Universe of universe
+      (** Type or Prop *)
+  | PrimType of prim_type
+      (** Primitive type (Int32, Int64, etc.) *)
+  | Literal of literal
+      (** Primitive literal value *)
+  | Pi of { arg : binder; result : term }
+      (** Dependent function type: Π(x : A). B *)
+  | Lambda of { arg : binder; body : term }
+      (** Lambda abstraction: λ(x : A). t *)
+  | App of term * term list
+      (** Application: f a₁ a₂ ... aₙ (non-empty args) *)
+  | Eq of { ty : term; lhs : term; rhs : term }
+      (** Propositional equality type: Eq_A(u, v) *)
+  | Refl of { ty : term; value : term }
+      (** Reflexivity proof: refl_A(u) *)
+  | Rewrite of { proof : term; body : term }
+      (** Equality elimination: rewrite e in t *)
+  | Match of {
+      scrutinee : term;
+      motive : term;
+      as_name : name option;
+      cases : case list;
+      coverage_hint : coverage_hint;
+    }
+      (** Pattern matching with dependent motive *)
+  | Global of name
+      (** Reference to a global constant/constructor *)
+[@@deriving show, eq, yojson]
+
+(** {1 Roles} *)
+
+type role =
+  | Runtime     (** Kept at runtime *)
+  | ProofOnly   (** Erased at runtime *)
+  | Both        (** Available in both contexts *)
+[@@deriving show, eq, yojson]
+
+(** {1 Representation Descriptors} *)
+
+type repr_field = {
+  field_name : name;
+  field_repr : name;
+  offset_bytes : int;
+}
+[@@deriving show, eq, yojson]
+
+type repr_kind =
+  | Primitive of {
+      c_type : string;
+      size_bits : int;
+      signed : bool;
+    }
+  | Struct of {
+      c_struct_name : string;
+      size_bytes : int;
+      align_bytes : int;
+      fields : repr_field list;
+    }
+[@@deriving show, eq, yojson]
+
+type repr_decl = {
+  repr_name : name;
+  kind : repr_kind;
+}
+[@@deriving show, eq, yojson]
+
+(** {1 Foreign Function Interface} *)
+
+type extern_arg = {
+  extern_arg_name : name;
+  extern_arg_repr : name;
+}
+[@@deriving show, eq, yojson]
+
+type safety =
+  | Pure
+  | Impure
+[@@deriving show, eq, yojson]
+
+type extern_c_decl = {
+  extern_name : name;
+  c_name : string;
+  header : string;
+  return_repr : name option;
+  args : extern_arg list;
+  logical_type : term;
+  safety : safety;
+  axioms : name list;
+}
+[@@deriving show, eq, yojson]
+
+(** {1 Inductive Definitions} *)
+
+type constructor_decl = {
+  ctor_name : name;
+  ctor_args : binder list;
+}
+[@@deriving show, eq, yojson]
+
+type inductive_decl = {
+  ind_name : name;
+  params : binder list;
+  ind_universe : universe;
+  constructors : constructor_decl list;
+}
+[@@deriving show, eq, yojson]
+
+(** {1 Definitions and Theorems} *)
+
+type def_decl = {
+  def_name : name;
+  def_role : role;
+  def_type : term;
+  def_body : term;
+  rec_args : int list option;
+}
+[@@deriving show, eq, yojson]
+
+type theorem_decl = {
+  thm_name : name;
+  thm_type : term;
+  thm_proof : term;
+}
+[@@deriving show, eq, yojson]
+
+(** {1 Declarations} *)
+
+type declaration =
+  | Inductive of inductive_decl
+  | Definition of def_decl
+  | Theorem of theorem_decl
+  | Repr of repr_decl
+  | ExternC of extern_c_decl
+[@@deriving show, eq, yojson]
+
+(** {1 Modules} *)
+
+type module_decl = {
+  module_name : name;
+  imports : name list;
+  declarations : declaration list;
+}
+[@@deriving show, eq, yojson]
+
+(** {1 Utility Functions} *)
+
+(** [subst x s t] substitutes term [s] for variable [x] in term [t]. *)
+let rec subst (x : var) (s : term) (t : term) : term =
+  match t with
+  | Var y -> if String.equal x y then s else t
+  | Universe _ | PrimType _ | Literal _ | Global _ -> t
+  | Pi { arg; result } ->
+      let arg' = { arg with ty = subst x s arg.ty } in
+      if String.equal x arg.name then
+        Pi { arg = arg'; result }
+      else
+        Pi { arg = arg'; result = subst x s result }
+  | Lambda { arg; body } ->
+      let arg' = { arg with ty = subst x s arg.ty } in
+      if String.equal x arg.name then
+        Lambda { arg = arg'; body }
+      else
+        Lambda { arg = arg'; body = subst x s body }
+  | App (f, args) ->
+      App (subst x s f, List.map (subst x s) args)
+  | Eq { ty; lhs; rhs } ->
+      Eq { ty = subst x s ty; lhs = subst x s lhs; rhs = subst x s rhs }
+  | Refl { ty; value } ->
+      Refl { ty = subst x s ty; value = subst x s value }
+  | Rewrite { proof; body } ->
+      Rewrite { proof = subst x s proof; body = subst x s body }
+  | Match { scrutinee; motive; as_name; cases; coverage_hint } ->
+      let scrutinee' = subst x s scrutinee in
+      let motive' =
+        match as_name with
+        | Some n when String.equal x n -> motive
+        | _ -> subst x s motive
+      in
+      let cases' =
+        List.map
+          (fun c ->
+            let bound =
+              List.map (fun a -> a.arg_name) c.pattern.args
+            in
+            if List.mem x bound then c
+            else { c with body = subst x s c.body })
+          cases
+      in
+      Match
+        {
+          scrutinee = scrutinee';
+          motive = motive';
+          as_name;
+          cases = cases';
+          coverage_hint;
+        }
+
+(** [free_vars t] returns the set of free variables in term [t]. *)
+let free_vars (t : term) : var list =
+  let module S = Set.Make (String) in
+  let rec go acc = function
+    | Var x -> S.add x acc
+    | Universe _ | PrimType _ | Literal _ | Global _ -> acc
+    | Pi { arg; result } ->
+        let acc = go acc arg.ty in
+        S.remove arg.name (go acc result)
+    | Lambda { arg; body } ->
+        let acc = go acc arg.ty in
+        S.remove arg.name (go acc body)
+    | App (f, args) ->
+        List.fold_left go (go acc f) args
+    | Eq { ty; lhs; rhs } ->
+        go (go (go acc ty) lhs) rhs
+    | Refl { ty; value } ->
+        go (go acc ty) value
+    | Rewrite { proof; body } ->
+        go (go acc proof) body
+    | Match { scrutinee; motive; as_name; cases; _ } ->
+        let acc = go acc scrutinee in
+        let acc =
+          match as_name with
+          | Some n -> S.remove n (go acc motive)
+          | None -> go acc motive
+        in
+        List.fold_left
+          (fun acc c ->
+            let bound =
+              List.fold_left
+                (fun s a -> S.add a.arg_name s)
+                S.empty c.pattern.args
+            in
+            S.union acc (S.diff (go S.empty c.body) bound))
+          acc cases
+  in
+  S.elements (go S.empty t)

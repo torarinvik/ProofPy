@@ -1,0 +1,68 @@
+{
+  "module": "Std.Nat",
+  "imports": [],
+  "declarations": [
+    {
+      "inductive": {
+        "name": "Nat",
+        "params": [],
+        "universe": "Type",
+        "constructors": [
+          { "name": "zero", "args": [] },
+          { "name": "succ", "args": [{ "name": "n", "type": { "var": "Nat" } }] }
+        ]
+      }
+    },
+    {
+      "def": {
+        "name": "plus",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "m", "type": { "var": "Nat" } },
+                "result": { "var": "Nat" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "m", "type": { "var": "Nat" } },
+                "body": {
+                  "match": {
+                    "scrutinee": { "var": "n" },
+                    "motive": { "var": "Nat" },
+                    "as": "z",
+                    "cases": [
+                      {
+                        "pattern": { "ctor": "zero", "args": [] },
+                        "body": { "var": "m" }
+                      },
+                      {
+                        "pattern": { "ctor": "succ", "args": [{ "name": "k" }] },
+                        "body": {
+                          "app": [
+                            { "var": "succ" },
+                            { "app": [{ "var": "plus" }, { "var": "k" }, { "var": "m" }] }
+                          ]
+                        }
+                      }
+                    ],
+                    "coverage_hint": "complete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "rec_args": [0]
+      }
+    }
+  ]
+}
