@@ -25,9 +25,8 @@
  (depends
   (ocaml (>= 5.0))
   (dune (>= 3.0))
-  (yojson (>= 2.0))
+  (jsonm (>= 1.0))
   (ppx_deriving (>= 5.0))
-  (ppx_deriving_yojson (>= 3.0))
   (menhir (>= 20220210))
   (cmdliner (>= 1.1))
   (fmt (>= 0.9))

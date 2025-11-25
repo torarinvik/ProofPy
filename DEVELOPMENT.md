@@ -84,9 +84,8 @@ CertiJSON/
 
 | Package | Purpose |
 |---------|---------|
-| yojson | JSON parsing |
+| jsonm | JSON parsing |
 | ppx_deriving | Derive show, eq |
-| ppx_deriving_yojson | JSON serialization |
 | cmdliner | CLI argument parsing |
 | fmt | Formatting |
 | logs | Logging |

@@ -183,7 +183,7 @@ let test_recursion_without_rec_args () =
       match Typing.check_module m with
       | Ok _ -> fail "expected termination failure"
       | Error (Typing.TerminationCheckFailed "bad") -> ()
-      | Error (Typing.InDeclaration ("bad", Typing.TerminationCheckFailed "bad")) -> ()
+      | Error (Typing.InDeclaration ("bad", _, Typing.TerminationCheckFailed "bad")) -> ()
       | Error e -> fail (Typing.show_typing_error e))
 
 let test_positivity_failure () =
@@ -224,7 +224,7 @@ let test_positivity_failure () =
       match Typing.check_module m with
       | Ok _ -> fail "expected positivity failure"
       | Error (Typing.PositivityCheckFailed ("Bad", "f")) -> ()
-      | Error (Typing.InDeclaration ("Bad", Typing.PositivityCheckFailed ("Bad", "f"))) -> ()
+      | Error (Typing.InDeclaration ("Bad", _, Typing.PositivityCheckFailed ("Bad", "f"))) -> ()
       | Error e -> fail (Typing.show_typing_error e))
 
 let test_rec_arg_not_inductive () =
@@ -260,7 +260,7 @@ let test_rec_arg_not_inductive () =
       match Typing.check_module m with
       | Ok _ -> fail "expected rec_args inductive failure"
       | Error (Typing.RecArgNotInductive ("bad_rec", 0)) -> ()
-      | Error (Typing.InDeclaration ("bad_rec", Typing.RecArgNotInductive ("bad_rec", 0))) -> ()
+      | Error (Typing.InDeclaration ("bad_rec", _, Typing.RecArgNotInductive ("bad_rec", 0))) -> ()
       | Error e -> fail (Typing.show_typing_error e))
 
 let () =

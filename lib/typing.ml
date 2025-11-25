@@ -23,7 +23,7 @@ type typing_error =
   | UnknownConstructor of name
   | UnknownInductive of name
   | RoleMismatch of name * role * role  (* name, expected, actual *)
-  | InDeclaration of name * typing_error
+  | InDeclaration of name * Loc.t option * typing_error
 [@@deriving show]
 
 exception TypeError of typing_error
@@ -192,7 +192,7 @@ let rec string_of_typing_error (err : typing_error) : string =
   | RoleMismatch (name, expected, actual) ->
       Format.sprintf "Role mismatch for %s: expected %s but found %s"
         name (string_of_role expected) (string_of_role actual)
-  | InDeclaration (name, err) ->
+  | InDeclaration (name, _loc, err) ->
       Format.sprintf "While checking %s: %s" name (string_of_typing_error err)
 
 (** Positivity checking: ensure inductive appears only in strictly positive positions. *)
@@ -573,13 +573,13 @@ let check_termination (def : def_decl) : unit =
 
 (** Check a single declaration. *)
 let check_declaration (ctx : context) (decl : declaration) : unit =
-  let with_decl name f =
+  let with_decl name loc f =
     try f () with
-    | TypeError e -> raise (TypeError (InDeclaration (name, e)))
+    | TypeError e -> raise (TypeError (InDeclaration (name, loc, e)))
   in
   match decl with
   | Inductive ind ->
-      with_decl ind.ind_name (fun () ->
+      with_decl ind.ind_name ind.ind_loc (fun () ->
         (* Check parameter types *)
         let ctx' =
           List.fold_left
@@ -605,17 +605,17 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
               ctor.ctor_args)
           ind.constructors)
   | Definition def ->
-      with_decl def.def_name (fun () ->
+      with_decl def.def_name def.def_loc (fun () ->
         let _ = check ctx def.def_type (Universe Type) in
         check ctx def.def_body def.def_type;
         check_termination def)
   | Theorem thm ->
-      with_decl thm.thm_name (fun () ->
+      with_decl thm.thm_name thm.thm_loc (fun () ->
         let _ = check ctx thm.thm_type (Universe Prop) in
         check ctx thm.thm_proof thm.thm_type)
   | Repr _ -> ()  (* Repr declarations are not type-checked in the logical sense *)
   | ExternC ext ->
-      with_decl ext.extern_name (fun () ->
+      with_decl ext.extern_name ext.extern_loc (fun () ->
         let _ = check ctx ext.logical_type (Universe Type) in
         ())
 

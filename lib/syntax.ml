@@ -3,20 +3,22 @@
     This module defines the internal representation of CertiJSON programs
     after parsing from JSON. *)
 
+module Loc = Loc
+
 (** {1 Identifiers} *)
 
 type name = string
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 type var = string
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Universes} *)
 
 type universe =
   | Type  (** Computational types *)
   | Prop  (** Propositions (erased at runtime) *)
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Primitive Types} *)
 
@@ -26,7 +28,7 @@ type prim_type =
   | Float64
   | Bool
   | Size
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Literals} *)
 
@@ -35,7 +37,7 @@ type literal =
   | LitInt64 of int64
   | LitFloat64 of float
   | LitBool of bool
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Binders} *)
 
@@ -43,31 +45,31 @@ type binder = {
   name : name;
   ty : term;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Pattern Matching} *)
 
 and pattern_arg = {
   arg_name : name;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 and pattern = {
   ctor : name;
   args : pattern_arg list;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 and case = {
   pattern : pattern;
   body : term;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 and coverage_hint =
   | Complete
   | Unknown
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Terms} *)
 
@@ -102,7 +104,7 @@ and term =
       (** Pattern matching with dependent motive *)
   | Global of name
       (** Reference to a global constant/constructor *)
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Roles} *)
 
@@ -110,7 +112,7 @@ type role =
   | Runtime     (** Kept at runtime *)
   | ProofOnly   (** Erased at runtime *)
   | Both        (** Available in both contexts *)
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Representation Descriptors} *)
 
@@ -119,7 +121,7 @@ type repr_field = {
   field_repr : name;
   offset_bytes : int;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 type repr_kind =
   | Primitive of {
@@ -133,13 +135,14 @@ type repr_kind =
       align_bytes : int;
       fields : repr_field list;
     }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 type repr_decl = {
   repr_name : name;
   kind : repr_kind;
+  repr_loc : Loc.t option;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Foreign Function Interface} *)
 
@@ -147,12 +150,12 @@ type extern_arg = {
   extern_arg_name : name;
   extern_arg_repr : name;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 type safety =
   | Pure
   | Impure
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 type extern_c_decl = {
   extern_name : name;
@@ -163,24 +166,27 @@ type extern_c_decl = {
   logical_type : term;
   safety : safety;
   axioms : name list;
+  extern_loc : Loc.t option;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Inductive Definitions} *)
 
 type constructor_decl = {
   ctor_name : name;
   ctor_args : binder list;
+  ctor_loc : Loc.t option;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 type inductive_decl = {
   ind_name : name;
   params : binder list;
   ind_universe : universe;
   constructors : constructor_decl list;
+  ind_loc : Loc.t option;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Definitions and Theorems} *)
 
@@ -190,15 +196,17 @@ type def_decl = {
   def_type : term;
   def_body : term;
   rec_args : int list option;
+  def_loc : Loc.t option;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 type theorem_decl = {
   thm_name : name;
   thm_type : term;
   thm_proof : term;
+  thm_loc : Loc.t option;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Declarations} *)
 
@@ -208,7 +216,7 @@ type declaration =
   | Theorem of theorem_decl
   | Repr of repr_decl
   | ExternC of extern_c_decl
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Modules} *)
 
@@ -216,8 +224,9 @@ type module_decl = {
   module_name : name;
   imports : name list;
   declarations : declaration list;
+  module_loc : Loc.t option;
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (** {1 Utility Functions} *)
 

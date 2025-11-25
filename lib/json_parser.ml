@@ -1,8 +1,9 @@
-(** JSON parser for CertiJSON modules.
+(** JSON parser for CertiJSON modules using Jsonm (location-aware scanning).
     
     This module parses JSON files into the abstract syntax defined in {!Syntax}. *)
 
 open Syntax
+module Loc = Loc
 
 (** {1 Error Types} *)
 
@@ -16,66 +17,138 @@ type parse_error =
 
 exception ParseError of parse_error
 
+(** {1 Lightweight JSON AST} *)
+
+type json =
+  | JObject of (string * json) list
+  | JArray of json list
+  | JString of string
+  | JFloat of float
+  | JBool of bool
+  | JNull
+
+let json_to_string = function
+  | JObject _ -> "<object>"
+  | JArray _ -> "<array>"
+  | JString s -> Printf.sprintf "\"%s\"" s
+  | JFloat f -> string_of_float f
+  | JBool b -> string_of_bool b
+  | JNull -> "null"
+
+(** {1 Jsonm decoding} *)
+
+let parse_error_of_jsonm err =
+  let msg = Format.asprintf "%a" Jsonm.pp_error err in
+  ParseError (JsonError msg)
+
+let rec decode_value dec : json =
+  match Jsonm.decode dec with
+  | `Lexeme (`Os) -> decode_object dec []
+  | `Lexeme (`As) -> decode_array dec []
+  | `Lexeme (`Null) -> JNull
+  | `Lexeme (`Bool b) -> JBool b
+  | `Lexeme (`String s) -> JString s
+  | `Lexeme (`Float f) -> JFloat f
+  | `Lexeme (`Name _) -> raise (ParseError (UnexpectedType ("value", "name")))
+  | `Error e -> raise (parse_error_of_jsonm e)
+  | `End -> raise (ParseError (JsonError "unexpected end of input"))
+  | `Await -> assert false
+  | `Lexeme (`Ae | `Oe) -> raise (ParseError (JsonError "unexpected array/object end"))
+
+and decode_object dec acc =
+  match Jsonm.decode dec with
+  | `Lexeme (`Name n) ->
+      let v = decode_value dec in
+      decode_object dec ((n, v) :: acc)
+  | `Lexeme (`Oe) -> JObject (List.rev acc)
+  | `Lexeme _ -> raise (ParseError (JsonError "invalid object lexeme"))
+  | `Error e -> raise (parse_error_of_jsonm e)
+  | `End -> raise (ParseError (JsonError "unexpected end of input in object"))
+  | `Await -> assert false
+
+and decode_array dec acc =
+  match Jsonm.decode dec with
+  | `Lexeme (`Ae) -> JArray (List.rev acc)
+  | `Lexeme lex ->
+      let value =
+        match lex with
+        | `Os -> decode_object dec []
+        | `As -> decode_array dec []
+        | `Null -> JNull
+        | `Bool b -> JBool b
+        | `String s -> JString s
+        | `Float f -> JFloat f
+        | `Name _ -> raise (ParseError (UnexpectedType ("value", "name")))
+        | `Ae | `Oe -> raise (ParseError (JsonError "unexpected array/object end"))
+      in
+      decode_array dec (value :: acc)
+  | `Error e -> raise (parse_error_of_jsonm e)
+  | `End -> raise (ParseError (JsonError "unexpected end of input in array"))
+  | `Await -> assert false
+
+let decode_json_string (s : string) : json =
+  let dec = Jsonm.decoder (`String s) in
+  decode_value dec
+
 (** {1 Helper Functions} *)
 
-let get_field (json : Yojson.Safe.t) (field : string) : Yojson.Safe.t =
+let get_field (json : json) (field : string) : json =
   match json with
-  | `Assoc fields -> (
+  | JObject fields -> (
       match List.assoc_opt field fields with
       | Some v -> v
       | None -> raise (ParseError (MissingField field)))
-  | _ -> raise (ParseError (UnexpectedType ("object", Yojson.Safe.to_string json)))
+  | _ -> raise (ParseError (UnexpectedType ("object", json_to_string json)))
 
-let get_field_opt (json : Yojson.Safe.t) (field : string) : Yojson.Safe.t option =
+let get_field_opt (json : json) (field : string) : json option =
   match json with
-  | `Assoc fields -> List.assoc_opt field fields
+  | JObject fields -> List.assoc_opt field fields
   | _ -> None
 
-let get_string (json : Yojson.Safe.t) : string =
+let get_string (json : json) : string =
   match json with
-  | `String s -> s
-  | _ -> raise (ParseError (UnexpectedType ("string", Yojson.Safe.to_string json)))
+  | JString s -> s
+  | _ -> raise (ParseError (UnexpectedType ("string", json_to_string json)))
 
-let get_int (json : Yojson.Safe.t) : int =
+let get_int (json : json) : int =
   match json with
-  | `Int i -> i
-  | _ -> raise (ParseError (UnexpectedType ("int", Yojson.Safe.to_string json)))
+  | JFloat f -> int_of_float f
+  | _ -> raise (ParseError (UnexpectedType ("int", json_to_string json)))
 
-let get_float (json : Yojson.Safe.t) : float =
+let get_float (json : json) : float =
   match json with
-  | `Float f -> f
-  | `Int i -> Float.of_int i
-  | _ -> raise (ParseError (UnexpectedType ("float", Yojson.Safe.to_string json)))
+  | JFloat f -> f
+  | _ -> raise (ParseError (UnexpectedType ("float", json_to_string json)))
 
-let get_bool (json : Yojson.Safe.t) : bool =
+let get_bool (json : json) : bool =
   match json with
-  | `Bool b -> b
-  | _ -> raise (ParseError (UnexpectedType ("bool", Yojson.Safe.to_string json)))
+  | JBool b -> b
+  | _ -> raise (ParseError (UnexpectedType ("bool", json_to_string json)))
 
-let get_list (json : Yojson.Safe.t) : Yojson.Safe.t list =
+let get_list (json : json) : json list =
   match json with
-  | `List l -> l
-  | _ -> raise (ParseError (UnexpectedType ("list", Yojson.Safe.to_string json)))
+  | JArray l -> l
+  | _ -> raise (ParseError (UnexpectedType ("list", json_to_string json)))
 
-let has_field (json : Yojson.Safe.t) (field : string) : bool =
+let has_field (json : json) (field : string) : bool =
   match json with
-  | `Assoc fields -> List.mem_assoc field fields
+  | JObject fields -> List.mem_assoc field fields
   | _ -> false
 
 (** {1 Term Parsing} *)
 
-let rec parse_term (json : Yojson.Safe.t) : term =
+let rec parse_term (json : json) : term =
   match json with
-  | `Assoc _ when has_field json "var" ->
+  | JObject _ when has_field json "var" ->
       Var (get_string (get_field json "var"))
-  | `Assoc _ when has_field json "universe" ->
+  | JObject _ when has_field json "universe" ->
       let u = get_string (get_field json "universe") in
       Universe
         (match u with
         | "Type" -> Type
         | "Prop" -> Prop
         | _ -> raise (ParseError (InvalidValue ("universe", u))))
-  | `Assoc _ when has_field json "pi" ->
+  | JObject _ when has_field json "pi" ->
       let pi = get_field json "pi" in
       let arg_json = get_field pi "arg" in
       let arg =
@@ -86,8 +159,7 @@ let rec parse_term (json : Yojson.Safe.t) : term =
       in
       let result = parse_term (get_field pi "result") in
       Pi { arg; result }
-  | `Assoc _ when has_field json "forall" ->
-      (* Sugar for pi *)
+  | JObject _ when has_field json "forall" ->
       let forall = get_field json "forall" in
       let arg_json = get_field forall "arg" in
       let arg =
@@ -98,7 +170,7 @@ let rec parse_term (json : Yojson.Safe.t) : term =
       in
       let result = parse_term (get_field forall "result") in
       Pi { arg; result }
-  | `Assoc _ when has_field json "lambda" ->
+  | JObject _ when has_field json "lambda" ->
       let lam = get_field json "lambda" in
       let arg_json = get_field lam "arg" in
       let arg =
@@ -109,14 +181,14 @@ let rec parse_term (json : Yojson.Safe.t) : term =
       in
       let body = parse_term (get_field lam "body") in
       Lambda { arg; body }
-  | `Assoc _ when has_field json "app" ->
+  | JObject _ when has_field json "app" ->
       let apps = get_list (get_field json "app") in
       (match apps with
       | [] -> raise (ParseError (InvalidValue ("app", "empty application list")))
       | [ _ ] ->
           raise (ParseError (InvalidValue ("app", "application needs at least 2 terms")))
       | f :: args -> App (parse_term f, List.map parse_term args))
-  | `Assoc _ when has_field json "eq" ->
+  | JObject _ when has_field json "eq" ->
       let eq = get_field json "eq" in
       Eq
         {
@@ -124,7 +196,7 @@ let rec parse_term (json : Yojson.Safe.t) : term =
           lhs = parse_term (get_field eq "lhs");
           rhs = parse_term (get_field eq "rhs");
         }
-  | `Assoc _ when has_field json "refl" ->
+  | JObject _ when has_field json "refl" ->
       let refl = get_field json "refl" in
       let eq = get_field refl "eq" in
       Refl
@@ -132,14 +204,14 @@ let rec parse_term (json : Yojson.Safe.t) : term =
           ty = parse_term (get_field eq "type");
           value = parse_term (get_field eq "lhs");
         }
-  | `Assoc _ when has_field json "rewrite" ->
+  | JObject _ when has_field json "rewrite" ->
       let rw = get_field json "rewrite" in
       Rewrite
         {
           proof = parse_term (get_field rw "proof");
           body = parse_term (get_field rw "in");
         }
-  | `Assoc _ when has_field json "match" ->
+  | JObject _ when has_field json "match" ->
       let m = get_field json "match" in
       let scrutinee = parse_term (get_field m "scrutinee") in
       let motive = parse_term (get_field m "motive") in
@@ -147,22 +219,22 @@ let rec parse_term (json : Yojson.Safe.t) : term =
       let cases = List.map parse_case (get_list (get_field m "cases")) in
       let coverage_hint =
         match get_field_opt m "coverage_hint" with
-        | Some (`String "complete") -> Complete
+        | Some (JString "complete") -> Complete
         | _ -> Unknown
       in
       Match { scrutinee; motive; as_name; cases; coverage_hint }
-  | `Assoc _ when has_field json "int32" ->
+  | JObject _ when has_field json "int32" ->
       Literal (LitInt32 (Int32.of_int (get_int (get_field json "int32"))))
-  | `Assoc _ when has_field json "int64" ->
+  | JObject _ when has_field json "int64" ->
       Literal (LitInt64 (Int64.of_int (get_int (get_field json "int64"))))
-  | `Assoc _ when has_field json "float64" ->
+  | JObject _ when has_field json "float64" ->
       Literal (LitFloat64 (get_float (get_field json "float64")))
-  | `Assoc _ when has_field json "bool" ->
+  | JObject _ when has_field json "bool" ->
       Literal (LitBool (get_bool (get_field json "bool")))
   | _ ->
-      raise (ParseError (InvalidNodeKind (Yojson.Safe.to_string json)))
+      raise (ParseError (InvalidNodeKind (json_to_string json)))
 
-and parse_case (json : Yojson.Safe.t) : case =
+and parse_case (json : json) : case =
   let pat_json = get_field json "pattern" in
   let ctor = get_string (get_field pat_json "ctor") in
   let args =
@@ -178,7 +250,7 @@ and parse_case (json : Yojson.Safe.t) : case =
 
 (** {1 Binder Parsing} *)
 
-let parse_binder (json : Yojson.Safe.t) : binder =
+let parse_binder (json : json) : binder =
   {
     name = get_string (get_field json "name");
     ty = parse_term (get_field json "type");
@@ -193,7 +265,7 @@ let parse_role (s : string) : role =
   | "both" -> Both
   | _ -> raise (ParseError (InvalidValue ("role", s)))
 
-let parse_inductive (json : Yojson.Safe.t) : inductive_decl =
+let parse_inductive (json : json) : inductive_decl =
   let name = get_string (get_field json "name") in
   let params =
     match get_field_opt json "params" with
@@ -215,16 +287,16 @@ let parse_inductive (json : Yojson.Safe.t) : inductive_decl =
           | Some args -> List.map parse_binder (get_list args)
           | None -> []
         in
-        { ctor_name; ctor_args })
+        { ctor_name; ctor_args; ctor_loc = None })
       (get_list (get_field json "constructors"))
   in
-  { ind_name = name; params; ind_universe = universe; constructors }
+  { ind_name = name; params; ind_universe = universe; constructors; ind_loc = None }
 
-let parse_def (json : Yojson.Safe.t) : def_decl =
+let parse_def (json : json) : def_decl =
   let name = get_string (get_field json "name") in
   let role =
     match get_field_opt json "role" with
-    | Some (`String s) -> parse_role s
+    | Some (JString s) -> parse_role s
     | _ -> Both
   in
   let ty = parse_term (get_field json "type") in
@@ -234,15 +306,15 @@ let parse_def (json : Yojson.Safe.t) : def_decl =
     | Some args -> Some (List.map get_int (get_list args))
     | None -> None
   in
-  { def_name = name; def_role = role; def_type = ty; def_body = body; rec_args }
+  { def_name = name; def_role = role; def_type = ty; def_body = body; rec_args; def_loc = None }
 
-let parse_theorem (json : Yojson.Safe.t) : theorem_decl =
+let parse_theorem (json : json) : theorem_decl =
   let name = get_string (get_field json "name") in
   let ty = parse_term (get_field json "type") in
   let proof = parse_term (get_field json "proof") in
-  { thm_name = name; thm_type = ty; thm_proof = proof }
+  { thm_name = name; thm_type = ty; thm_proof = proof; thm_loc = None }
 
-let parse_repr (json : Yojson.Safe.t) : repr_decl =
+let parse_repr (json : json) : repr_decl =
   let name = get_string (get_field json "name") in
   let kind_str = get_string (get_field json "kind") in
   let kind =
@@ -274,9 +346,9 @@ let parse_repr (json : Yojson.Safe.t) : repr_decl =
           }
     | _ -> raise (ParseError (InvalidValue ("kind", kind_str)))
   in
-  { repr_name = name; kind }
+  { repr_name = name; kind; repr_loc = None }
 
-let parse_extern_c (json : Yojson.Safe.t) : extern_c_decl =
+let parse_extern_c (json : json) : extern_c_decl =
   let name = get_string (get_field json "name") in
   let c_name = get_string (get_field json "c_name") in
   let header = get_string (get_field json "header") in
@@ -301,8 +373,8 @@ let parse_extern_c (json : Yojson.Safe.t) : extern_c_decl =
   let logical_type = parse_term (get_field json "type") in
   let safety =
     match get_field_opt json "safety" with
-    | Some (`String "pure") -> Pure
-    | Some (`String "impure") -> Impure
+    | Some (JString "pure") -> Pure
+    | Some (JString "impure") -> Impure
     | _ -> Pure
   in
   let axioms =
@@ -310,9 +382,9 @@ let parse_extern_c (json : Yojson.Safe.t) : extern_c_decl =
     | Some axs -> List.map get_string (get_list axs)
     | None -> []
   in
-  { extern_name = name; c_name; header; return_repr; args; logical_type; safety; axioms }
+  { extern_name = name; c_name; header; return_repr; args; logical_type; safety; axioms; extern_loc = None }
 
-let parse_declaration (json : Yojson.Safe.t) : declaration =
+let parse_declaration (json : json) : declaration =
   if has_field json "inductive" then
     Inductive (parse_inductive (get_field json "inductive"))
   else if has_field json "def" then
@@ -324,11 +396,11 @@ let parse_declaration (json : Yojson.Safe.t) : declaration =
   else if has_field json "extern_c" then
     ExternC (parse_extern_c (get_field json "extern_c"))
   else
-    raise (ParseError (InvalidNodeKind (Yojson.Safe.to_string json)))
+    raise (ParseError (InvalidNodeKind (json_to_string json)))
 
 (** {1 Module Parsing} *)
 
-let parse_module (json : Yojson.Safe.t) : module_decl =
+let parse_module ?(loc_of_name = (fun _ -> None)) (json : json) : module_decl =
   let module_name = get_string (get_field json "module") in
   let imports =
     match get_field_opt json "imports" with
@@ -337,24 +409,58 @@ let parse_module (json : Yojson.Safe.t) : module_decl =
   in
   let declarations =
     List.map parse_declaration (get_list (get_field json "declarations"))
+    |> List.map (function
+           | Inductive ind ->
+               Inductive
+                 {
+                   ind with
+                   ind_loc = loc_of_name ind.ind_name;
+                   constructors =
+                     List.map
+                       (fun c -> { c with ctor_loc = loc_of_name c.ctor_name })
+                       ind.constructors;
+                 }
+           | Definition def ->
+               Definition { def with def_loc = loc_of_name def.def_name }
+           | Theorem thm ->
+               Theorem { thm with thm_loc = loc_of_name thm.thm_name }
+           | Repr repr ->
+               Repr { repr with repr_loc = loc_of_name repr.repr_name }
+           | ExternC ext ->
+               ExternC { ext with extern_loc = loc_of_name ext.extern_name })
   in
-  { module_name; imports; declarations }
+  { module_name; imports; declarations; module_loc = loc_of_name module_name }
 
 (** {1 Entry Points} *)
 
 let parse_string (s : string) : (module_decl, parse_error) result =
   try
-    let json = Yojson.Safe.from_string s in
-    Ok (parse_module json)
+    let json = decode_json_string s in
+    let loc_tbl = Loc.index_name_locations s in
+    let loc_of_name name = Hashtbl.find_opt loc_tbl name in
+    Ok (parse_module ~loc_of_name json)
   with
   | ParseError e -> Error e
-  | Yojson.Json_error msg -> Error (JsonError msg)
+  | _ -> Error (JsonError "unknown JSON parse error")
 
 let parse_file (filename : string) : (module_decl, parse_error) result =
   try
-    let json = Yojson.Safe.from_file filename in
-    Ok (parse_module json)
+    let content =
+      let ch = open_in_bin filename in
+      let len = in_channel_length ch in
+      let s = really_input_string ch len in
+      close_in ch;
+      s
+    in
+    let json = decode_json_string content in
+    let loc_tbl = Loc.index_name_locations content in
+    let loc_of_name name =
+      match Hashtbl.find_opt loc_tbl name with
+      | Some loc -> Some (Loc.with_file filename loc)
+      | None -> None
+    in
+    Ok (parse_module ~loc_of_name json)
   with
   | ParseError e -> Error e
-  | Yojson.Json_error msg -> Error (JsonError msg)
   | Sys_error msg -> Error (JsonError msg)
+  | _ -> Error (JsonError "unknown JSON parse error")

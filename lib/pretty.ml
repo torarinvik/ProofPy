@@ -70,7 +70,7 @@ let term_to_string t =
 let pp_binder fmt { name; ty } =
   Format.fprintf fmt "(%s : %a)" name pp_term ty
 
-let pp_constructor fmt { ctor_name; ctor_args } =
+let pp_constructor fmt { ctor_name; ctor_args; _ } =
   if ctor_args = [] then
     Format.fprintf fmt "%s" ctor_name
   else
@@ -79,7 +79,7 @@ let pp_constructor fmt { ctor_name; ctor_args } =
       (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " → ") pp_binder)
       ctor_args
 
-let pp_inductive fmt { ind_name; params; ind_universe; constructors } =
+let pp_inductive fmt { ind_name; params; ind_universe; constructors; _ } =
   Format.fprintf fmt "@[<v 2>Inductive %s%a : %a :=@,%a@]"
     ind_name
     (fun fmt ps ->
@@ -97,7 +97,7 @@ let pp_role fmt = function
   | ProofOnly -> Format.fprintf fmt "proof-only"
   | Both -> Format.fprintf fmt "both"
 
-let pp_def fmt { def_name; def_role; def_type; def_body; rec_args } =
+let pp_def fmt { def_name; def_role; def_type; def_body; rec_args; _ } =
   Format.fprintf fmt "@[<v 2>def %s [%a]%a : %a :=@,%a@]"
     def_name
     pp_role def_role
@@ -111,7 +111,7 @@ let pp_def fmt { def_name; def_role; def_type; def_body; rec_args } =
     pp_term def_type
     pp_term def_body
 
-let pp_theorem fmt { thm_name; thm_type; thm_proof } =
+let pp_theorem fmt { thm_name; thm_type; thm_proof; _ } =
   Format.fprintf fmt "@[<v 2>theorem %s : %a :=@,%a@]"
     thm_name
     pp_term thm_type
@@ -126,7 +126,7 @@ let pp_declaration fmt = function
   | ExternC ext ->
       Format.fprintf fmt "extern_c %s = \"%s\"" ext.extern_name ext.c_name
 
-let pp_module fmt { module_name; imports; declarations } =
+let pp_module fmt { module_name; imports; declarations; _ } =
   Format.fprintf fmt "@[<v>module %s@,@,imports: %a@,@,@[<v>%a@]@]"
     module_name
     (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") Format.pp_print_string)
