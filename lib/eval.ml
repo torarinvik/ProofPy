@@ -42,7 +42,7 @@ let lookup_env (env : env) (x : name) : value option =
 
 (** Evaluate a term to a value. *)
 let rec eval (ctx : context) (env : env) (t : term) : value =
-  match t with
+  match t.desc with
   | Var x -> (
       match lookup_env env x with
       | Some v -> v
@@ -102,9 +102,9 @@ and eval_match (ctx : context) (env : env) (scrut : value) (cases : case list) :
           in
           let env' = List.fold_left (fun e (x, v) -> extend_env e x v) env bindings in
           eval ctx env' case.body
-      | None -> VNeutral (NMatch (NVar "_no_case_", Universe Type, cases)))
-  | VNeutral n -> VNeutral (NMatch (n, Universe Type, cases))
-  | _ -> VNeutral (NMatch (NVar "_stuck_match_", Universe Type, cases))
+      | None -> VNeutral (NMatch (NVar "_no_case_", mk (Universe Type), cases)))
+  | VNeutral n -> VNeutral (NMatch (n, mk (Universe Type), cases))
+  | _ -> VNeutral (NMatch (NVar "_stuck_match_", mk (Universe Type), cases))
 
 (** {1 Readback (Quote)} *)
 
@@ -112,27 +112,27 @@ and eval_match (ctx : context) (env : env) (scrut : value) (cases : case list) :
 let rec quote (v : value) : term =
   match v with
   | VLambda { arg; body; env = _ } ->
-      Lambda { arg; body }  (* Simplified - should do proper closure conversion *)
-  | VConstructor (name, []) -> Global name
+      mk ?loc:arg.b_loc (Lambda { arg; body })  (* Simplified - should do proper closure conversion *)
+  | VConstructor (name, []) -> mk (Global name)
   | VConstructor (name, args) ->
-      App (Global name, List.map quote args)
-  | VUniverse u -> Universe u
+      mk (App (mk (Global name), List.map quote args))
+  | VUniverse u -> mk (Universe u)
   | VPi { arg; result; env = _ } ->
-      Pi { arg; result }
+      mk ?loc:arg.b_loc (Pi { arg; result })
   | VEq { ty; lhs; rhs } ->
-      Eq { ty = quote ty; lhs = quote lhs; rhs = quote rhs }
+      mk (Eq { ty = quote ty; lhs = quote lhs; rhs = quote rhs })
   | VRefl { ty; value } ->
-      Refl { ty = quote ty; value = quote value }
-  | VLiteral l -> Literal l
-  | VPrimType p -> PrimType p
+      mk (Refl { ty = quote ty; value = quote value })
+  | VLiteral l -> mk (Literal l)
+  | VPrimType p -> mk (PrimType p)
   | VNeutral n -> quote_neutral n
 
 and quote_neutral (n : neutral) : term =
   match n with
-  | NVar x -> Var x
-  | NApp (f, args) -> App (quote_neutral f, List.map quote args)
+  | NVar x -> mk (Var x)
+  | NApp (f, args) -> mk (App (quote_neutral f, List.map quote args))
   | NMatch (scrut, motive, cases) ->
-      Match { scrutinee = quote_neutral scrut; motive; as_name = None; cases; coverage_hint = Unknown }
+      mk (Match { scrutinee = quote_neutral scrut; motive; as_name = None; cases; coverage_hint = Unknown })
 
 (** {1 Normalization} *)
 

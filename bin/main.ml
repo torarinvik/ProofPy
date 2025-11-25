@@ -77,7 +77,7 @@ let eval_cmd =
             `Error (false, "type checking failed")
         | Ok sig_ ->
             let ctx = CJ.Context.make_ctx sig_ in
-            let term = CJ.Syntax.Global def_name in
+            let term = CJ.Syntax.mk (CJ.Syntax.Global def_name) in
             let result = CJ.Eval.normalize ctx term in
             Fmt.pr "%s@." (CJ.Pretty.term_to_string result);
             `Ok ()

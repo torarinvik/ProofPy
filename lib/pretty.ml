@@ -23,7 +23,8 @@ let pp_literal fmt = function
   | LitFloat64 f -> Format.fprintf fmt "%f" f
   | LitBool b -> Format.fprintf fmt "%b" b
 
-let rec pp_term fmt = function
+let rec pp_term fmt (t : term) =
+  match t.desc with
   | Var x -> Format.fprintf fmt "%s" x
   | Universe u -> pp_universe fmt u
   | PrimType p -> pp_prim_type fmt p
@@ -52,14 +53,14 @@ let rec pp_term fmt = function
         pp_term motive
         (Format.pp_print_list ~pp_sep:Format.pp_print_cut pp_case) cases
 
-and pp_case fmt { pattern; body } =
+and pp_case fmt { pattern; body; _ } =
   Format.fprintf fmt "| %s(%a) => %a"
     pattern.ctor
     (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") pp_pattern_arg)
     pattern.args
     pp_term body
 
-and pp_pattern_arg fmt { arg_name } =
+and pp_pattern_arg fmt { arg_name; _ } =
   Format.fprintf fmt "%s" arg_name
 
 let term_to_string t =
@@ -67,7 +68,7 @@ let term_to_string t =
 
 (** {1 Declaration Printers} *)
 
-let pp_binder fmt { name; ty } =
+let pp_binder fmt { name; ty; _ } =
   Format.fprintf fmt "(%s : %a)" name pp_term ty
 
 let pp_constructor fmt { ctor_name; ctor_args; _ } =

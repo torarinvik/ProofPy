@@ -125,9 +125,9 @@ let build_signature (decls : declaration list) : signature =
 
 (** Get the type of an inductive type former. *)
 let inductive_type (ind : inductive_decl) : term =
-  let result = Universe ind.ind_universe in
+  let result = mk ?loc:ind.ind_loc (Universe ind.ind_universe) in
   List.fold_right
-    (fun p acc -> Pi { arg = p; result = acc })
+    (fun p acc -> mk ?loc:p.b_loc (Pi { arg = p; result = acc }))
     ind.params result
 
 (** Get the type of a constructor. *)
@@ -135,17 +135,18 @@ let constructor_type (ind : inductive_decl) (ctor : constructor_decl) : term =
   (* Result type: I p₁ ... pₙ *)
   let result =
     match ind.params with
-    | [] -> Var ind.ind_name
+    | [] -> mk ?loc:ind.ind_loc (Var ind.ind_name)
     | params ->
-        App (Var ind.ind_name, List.map (fun p -> Var p.name) params)
+        mk ?loc:ind.ind_loc
+          (App (mk ?loc:ind.ind_loc (Var ind.ind_name), List.map (fun p -> mk ?loc:p.b_loc (Var p.name)) params))
   in
   (* Add constructor arguments *)
   let with_args =
     List.fold_right
-      (fun arg acc -> Pi { arg; result = acc })
+      (fun arg acc -> mk ?loc:arg.b_loc (Pi { arg; result = acc }))
       ctor.ctor_args result
   in
   (* Add parameters *)
   List.fold_right
-    (fun p acc -> Pi { arg = p; result = acc })
+    (fun p acc -> mk ?loc:p.b_loc (Pi { arg = p; result = acc }))
     ind.params with_args

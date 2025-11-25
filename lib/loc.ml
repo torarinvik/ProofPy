@@ -104,3 +104,7 @@ let location_of_name_in_file (file : string) (name : string) : t option =
   match Hashtbl.find_opt tbl name with
   | Some loc -> Some (with_file file loc)
   | None -> None
+
+(** Line index for offset-to-line/column mapping. *)
+let loc_of_range ?file (((line, col), _) : (int * int) * (int * int)) : t =
+  { file; line = Some line; column = Some col }

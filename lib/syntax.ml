@@ -39,61 +39,19 @@ type literal =
   | LitBool of bool
 [@@deriving show, eq]
 
-(** {1 Binders} *)
+(** {1 Terms with locations} *)
 
-type binder = {
-  name : name;
-  ty : term;
-}
-[@@deriving show, eq]
-
-(** {1 Pattern Matching} *)
-
-and pattern_arg = {
-  arg_name : name;
-}
-[@@deriving show, eq]
-
-and pattern = {
-  ctor : name;
-  args : pattern_arg list;
-}
-[@@deriving show, eq]
-
-and case = {
-  pattern : pattern;
-  body : term;
-}
-[@@deriving show, eq]
-
-and coverage_hint =
-  | Complete
-  | Unknown
-[@@deriving show, eq]
-
-(** {1 Terms} *)
-
-and term =
+type term_desc =
   | Var of var
-      (** Variable reference *)
   | Universe of universe
-      (** Type or Prop *)
   | PrimType of prim_type
-      (** Primitive type (Int32, Int64, etc.) *)
   | Literal of literal
-      (** Primitive literal value *)
   | Pi of { arg : binder; result : term }
-      (** Dependent function type: Π(x : A). B *)
   | Lambda of { arg : binder; body : term }
-      (** Lambda abstraction: λ(x : A). t *)
   | App of term * term list
-      (** Application: f a₁ a₂ ... aₙ (non-empty args) *)
   | Eq of { ty : term; lhs : term; rhs : term }
-      (** Propositional equality type: Eq_A(u, v) *)
   | Refl of { ty : term; value : term }
-      (** Reflexivity proof: refl_A(u) *)
   | Rewrite of { proof : term; body : term }
-      (** Equality elimination: rewrite e in t *)
   | Match of {
       scrutinee : term;
       motive : term;
@@ -101,9 +59,48 @@ and term =
       cases : case list;
       coverage_hint : coverage_hint;
     }
-      (** Pattern matching with dependent motive *)
   | Global of name
-      (** Reference to a global constant/constructor *)
+
+and term = {
+  desc : term_desc;
+  loc : Loc.t option;
+}
+[@@deriving show, eq]
+
+(** {1 Binders} *)
+
+and binder = {
+  name : name;
+  ty : term;
+  b_loc : Loc.t option;
+}
+[@@deriving show, eq]
+
+(** {1 Pattern Matching} *)
+
+and pattern_arg = {
+  arg_name : name;
+  arg_loc : Loc.t option;
+}
+[@@deriving show, eq]
+
+and pattern = {
+  ctor : name;
+  args : pattern_arg list;
+  pat_loc : Loc.t option;
+}
+[@@deriving show, eq]
+
+and case = {
+  pattern : pattern;
+  body : term;
+  case_loc : Loc.t option;
+}
+[@@deriving show, eq]
+
+and coverage_hint =
+  | Complete
+  | Unknown
 [@@deriving show, eq]
 
 (** {1 Roles} *)
@@ -230,31 +227,38 @@ type module_decl = {
 
 (** {1 Utility Functions} *)
 
+(** Helper to rebuild terms with preserved or overridden location. *)
+let with_loc ?loc (t : term) desc =
+  let loc = match loc with Some l -> Some l | None -> t.loc in
+  { desc; loc }
+
+let mk ?loc desc = { desc; loc }
+
 (** [subst x s t] substitutes term [s] for variable [x] in term [t]. *)
 let rec subst (x : var) (s : term) (t : term) : term =
-  match t with
+  match t.desc with
   | Var y -> if String.equal x y then s else t
   | Universe _ | PrimType _ | Literal _ | Global _ -> t
   | Pi { arg; result } ->
       let arg' = { arg with ty = subst x s arg.ty } in
       if String.equal x arg.name then
-        Pi { arg = arg'; result }
+        with_loc t (Pi { arg = arg'; result })
       else
-        Pi { arg = arg'; result = subst x s result }
+        with_loc t (Pi { arg = arg'; result = subst x s result })
   | Lambda { arg; body } ->
       let arg' = { arg with ty = subst x s arg.ty } in
       if String.equal x arg.name then
-        Lambda { arg = arg'; body }
+        with_loc t (Lambda { arg = arg'; body })
       else
-        Lambda { arg = arg'; body = subst x s body }
+        with_loc t (Lambda { arg = arg'; body = subst x s body })
   | App (f, args) ->
-      App (subst x s f, List.map (subst x s) args)
+      with_loc t (App (subst x s f, List.map (subst x s) args))
   | Eq { ty; lhs; rhs } ->
-      Eq { ty = subst x s ty; lhs = subst x s lhs; rhs = subst x s rhs }
+      with_loc t (Eq { ty = subst x s ty; lhs = subst x s lhs; rhs = subst x s rhs })
   | Refl { ty; value } ->
-      Refl { ty = subst x s ty; value = subst x s value }
+      with_loc t (Refl { ty = subst x s ty; value = subst x s value })
   | Rewrite { proof; body } ->
-      Rewrite { proof = subst x s proof; body = subst x s body }
+      with_loc t (Rewrite { proof = subst x s proof; body = subst x s body })
   | Match { scrutinee; motive; as_name; cases; coverage_hint } ->
       let scrutinee' = subst x s scrutinee in
       let motive' =
@@ -272,19 +276,21 @@ let rec subst (x : var) (s : term) (t : term) : term =
             else { c with body = subst x s c.body })
           cases
       in
-      Match
-        {
-          scrutinee = scrutinee';
-          motive = motive';
-          as_name;
-          cases = cases';
-          coverage_hint;
-        }
+      with_loc t
+        (Match
+           {
+             scrutinee = scrutinee';
+             motive = motive';
+             as_name;
+             cases = cases';
+             coverage_hint;
+           })
 
 (** [free_vars t] returns the set of free variables in term [t]. *)
 let free_vars (t : term) : var list =
   let module S = Set.Make (String) in
-  let rec go acc = function
+  let rec go acc (t : term) =
+    match t.desc with
     | Var x -> S.add x acc
     | Universe _ | PrimType _ | Literal _ | Global _ -> acc
     | Pi { arg; result } ->

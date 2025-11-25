@@ -36,13 +36,13 @@ module StringSet = Set.Make (String)
 
 (** Check if a term is a universe. *)
 let is_universe (t : term) : bool =
-  match t with
+  match t.desc with
   | Universe _ -> true
   | _ -> false
 
 (** Get the universe level of a type. *)
 let rec infer_universe (ctx : context) (t : term) : universe option =
-  match t with
+  match t.desc with
   | Universe u -> Some u
   | PrimType _ -> Some Type
   | Pi { arg; result } ->
@@ -55,17 +55,17 @@ let rec infer_universe (ctx : context) (t : term) : universe option =
 
 (** Weak head normal form reduction. *)
 let rec whnf (ctx : context) (t : term) : term =
-  match t with
+  match t.desc with
   | App (f, args) -> (
       let f' = whnf ctx f in
-      match f' with
+      match f'.desc with
       | Lambda { arg; body } when args <> [] ->
           let arg_val = List.hd args in
           let body' = subst arg.name arg_val body in
           let remaining = List.tl args in
           if remaining = [] then whnf ctx body'
-          else whnf ctx (App (body', remaining))
-      | _ -> App (f', args))
+          else whnf ctx (mk ?loc:t.loc (App (body', remaining)))
+      | _ -> mk ?loc:t.loc (App (f', args)))
   | Global name -> (
       match lookup ctx name with
       | Some (`Global (GDefinition def)) when def.def_role <> ProofOnly ->
@@ -73,8 +73,8 @@ let rec whnf (ctx : context) (t : term) : term =
       | _ -> t)
   | Match { scrutinee; cases; _ } -> (
       let scrut' = whnf ctx scrutinee in
-      match scrut' with
-      | App (Global ctor_name, ctor_args) -> (
+      match scrut'.desc with
+      | App ({ desc = Global ctor_name; _ }, ctor_args) -> (
           match
             List.find_opt (fun c -> String.equal c.pattern.ctor ctor_name) cases
           with
@@ -88,7 +88,9 @@ let rec whnf (ctx : context) (t : term) : term =
                   case.body bindings
               in
               whnf ctx body
-          | None -> Match { scrutinee = scrut'; motive = t; as_name = None; cases; coverage_hint = Unknown })
+          | None ->
+              mk ?loc:t.loc
+                (Match { scrutinee = scrut'; motive = t; as_name = None; cases; coverage_hint = Unknown }))
       | Global ctor_name -> (
           match
             List.find_opt (fun c -> String.equal c.pattern.ctor ctor_name) cases
@@ -106,7 +108,7 @@ let rec conv (ctx : context) (t1 : term) (t2 : term) : bool =
   conv_whnf ctx t1' t2'
 
 and conv_whnf (ctx : context) (t1 : term) (t2 : term) : bool =
-  match (t1, t2) with
+  match (t1.desc, t2.desc) with
   | Var x, Var y -> String.equal x y
   | Universe u1, Universe u2 -> equal_universe u1 u2
   | PrimType p1, PrimType p2 -> equal_prim_type p1 p2
@@ -115,11 +117,11 @@ and conv_whnf (ctx : context) (t1 : term) (t2 : term) : bool =
   | Pi { arg = a1; result = r1 }, Pi { arg = a2; result = r2 } ->
       conv ctx a1.ty a2.ty &&
       let ctx' = extend ctx a1.name a1.ty in
-      conv ctx' r1 (subst a2.name (Var a1.name) r2)
+      conv ctx' r1 (subst a2.name (mk ?loc:a1.b_loc (Var a1.name)) r2)
   | Lambda { arg = a1; body = b1 }, Lambda { arg = a2; body = b2 } ->
       conv ctx a1.ty a2.ty &&
       let ctx' = extend ctx a1.name a1.ty in
-      conv ctx' b1 (subst a2.name (Var a1.name) b2)
+      conv ctx' b1 (subst a2.name (mk ?loc:a1.b_loc (Var a1.name)) b2)
   | App (f1, args1), App (f2, args2) ->
       conv ctx f1 f2 &&
       List.length args1 = List.length args2 &&
@@ -136,7 +138,7 @@ let subst_many (substs : (name * term) list) (t : term) : term =
 
 (** Collect leading Π binders from a type. *)
 let rec collect_pi_binders (t : term) : binder list * term =
-  match t with
+  match t.desc with
   | Pi { arg; result } ->
       let bs, res = collect_pi_binders result in
       (arg :: bs, res)
@@ -144,7 +146,7 @@ let rec collect_pi_binders (t : term) : binder list * term =
 
 (** Collect leading lambda binders from a term. *)
 let rec collect_lambda_binders (t : term) : binder list * term =
-  match t with
+  match t.desc with
   | Lambda { arg; body } ->
       let bs, core = collect_lambda_binders body in
       (arg :: bs, core)
@@ -198,7 +200,7 @@ let rec string_of_typing_error (err : typing_error) : string =
 (** Positivity checking: ensure inductive appears only in strictly positive positions. *)
 let rec positive_occurrences (target : name) (positive : bool) (t : term) : bool =
   let go = positive_occurrences target in
-  match t with
+  match t.desc with
   | Var x | Global x ->
       if String.equal x target then positive else true
   | Universe _ | PrimType _ | Literal _ -> true
@@ -224,7 +226,7 @@ let rec positive_occurrences (target : name) (positive : bool) (t : term) : bool
 
 (** Infer the type of a term. *)
 let rec infer (ctx : context) (t : term) : term =
-  match t with
+  match t.desc with
   | Var x -> (
       match lookup ctx x with
       | Some (`Local ty) -> ty
@@ -237,65 +239,80 @@ let rec infer (ctx : context) (t : term) : term =
           | _ -> raise (TypeError (UnknownInductive parent)))
       | Some (`Global (GExternC ext)) -> ext.logical_type
       | Some (`Global (GRepr _)) ->
-          raise (TypeError (TypeMismatch { expected = Universe Type; actual = t; context = "repr is not a term" }))
+          raise (TypeError (TypeMismatch { expected = mk ?loc:t.loc (Universe Type); actual = t; context = "repr is not a term" }))
       | None -> raise (TypeError (UnboundVariable x)))
-  | Universe Type -> Universe Type  (* Type : Type - impredicative for simplicity *)
-  | Universe Prop -> Universe Type  (* Prop : Type *)
-  | PrimType _ -> Universe Type
-  | Literal (LitInt32 _) -> PrimType Int32
-  | Literal (LitInt64 _) -> PrimType Int64
-  | Literal (LitFloat64 _) -> PrimType Float64
-  | Literal (LitBool _) -> PrimType Bool
+  | Universe Type -> mk ?loc:t.loc (Universe Type)  (* Type : Type - impredicative for simplicity *)
+  | Universe Prop -> mk ?loc:t.loc (Universe Type)  (* Prop : Type *)
+  | PrimType _ -> mk ?loc:t.loc (Universe Type)
+  | Literal (LitInt32 _) -> mk ?loc:t.loc (PrimType Int32)
+  | Literal (LitInt64 _) -> mk ?loc:t.loc (PrimType Int64)
+  | Literal (LitFloat64 _) -> mk ?loc:t.loc (PrimType Float64)
+  | Literal (LitBool _) -> mk ?loc:t.loc (PrimType Bool)
   | Pi { arg; result } ->
-      let _ = check ctx arg.ty (Universe Type) in
+      let _ = check ctx arg.ty (mk ?loc:arg.b_loc (Universe Type)) in
       let ctx' = extend ctx arg.name arg.ty in
       let result_ty = infer ctx' result in
       (match result_ty with
-      | Universe u -> Universe u
+      | { desc = Universe u; _ } -> mk ?loc:t.loc (Universe u)
       | _ -> raise (TypeError (NotAType result)))
   | Lambda { arg; body } ->
-      let _ = check ctx arg.ty (Universe Type) in
+      let _ = check ctx arg.ty (mk ?loc:arg.b_loc (Universe Type)) in
       let ctx' = extend ctx arg.name arg.ty in
       let body_ty = infer ctx' body in
-      Pi { arg; result = body_ty }
+      mk ?loc:t.loc (Pi { arg; result = body_ty })
   | App (f, args) ->
       List.fold_left
         (fun f_ty arg ->
           let f_ty' = whnf ctx f_ty in
-          match f_ty' with
+          match f_ty'.desc with
           | Pi { arg = param; result } ->
               let _ = check ctx arg param.ty in
               subst param.name arg result
           | _ -> raise (TypeError (NotAFunction f_ty')))
         (infer ctx f) args
   | Eq { ty; lhs; rhs } ->
-      let _ = check ctx ty (Universe Type) in
+      let _ = check ctx ty (mk ?loc:ty.loc (Universe Type)) in
       let _ = check ctx lhs ty in
       let _ = check ctx rhs ty in
-      Universe Prop
+      mk ?loc:t.loc (Universe Prop)
   | Refl { ty; value } ->
-      let _ = check ctx ty (Universe Type) in
+      let _ = check ctx ty (mk ?loc:ty.loc (Universe Type)) in
       let _ = check ctx value ty in
-      Eq { ty; lhs = value; rhs = value }
+      mk ?loc:t.loc (Eq { ty; lhs = value; rhs = value })
   | Rewrite { proof; body } ->
       let proof_ty = infer ctx proof in
       let proof_ty' = whnf ctx proof_ty in
-      (match proof_ty' with
+      (match proof_ty'.desc with
       | Eq { ty = _; lhs = _; rhs = _ } ->
           (* For now, just return the body's type *)
           (* Full implementation would substitute based on equality *)
           infer ctx body
-      | _ -> raise (TypeError (TypeMismatch { expected = Eq { ty = Universe Type; lhs = Var "_"; rhs = Var "_" }; actual = proof_ty'; context = "rewrite proof" })))
+      | _ ->
+          raise
+            (TypeError
+               (TypeMismatch
+                  {
+                    expected =
+                      mk ?loc:t.loc
+                        (Eq
+                           {
+                             ty = mk ?loc:t.loc (Universe Type);
+                             lhs = mk ?loc:t.loc (Var "_");
+                             rhs = mk ?loc:t.loc (Var "_");
+                           });
+                    actual = proof_ty';
+                    context = "rewrite proof";
+                  })))
   | Match { scrutinee; motive; as_name; cases; coverage_hint = _ } ->
       let scrut_ty = infer ctx scrutinee in
       let scrut_ty_whnf = whnf ctx scrut_ty in
       let head, args =
-        match scrut_ty_whnf with
+        match scrut_ty_whnf.desc with
         | App (f, args) -> (f, args)
-        | t -> (t, [])
+        | _ -> (scrut_ty_whnf, [])
       in
       let ind =
-        match head with
+        match head.desc with
         | Var n | Global n -> (
             match lookup ctx n with
             | Some (`Global (GInductive ind)) -> ind
@@ -322,12 +339,10 @@ let rec infer (ctx : context) (t : term) : term =
         | Some n -> extend ctx n scrut_ty
         | None -> ctx
       in
-      let motive_universe =
-        match whnf ctx (infer motive_ctx motive) with
-        | Universe u -> u
-        | other -> raise (TypeError (NotAType other))
-      in
-      let _ = motive_universe in
+      let motive_type = whnf ctx (infer motive_ctx motive) in
+      (match motive_type.desc with
+      | Universe u -> u
+      | _ -> raise (TypeError (NotAType motive_type))) |> ignore;
       let seen = Hashtbl.create (List.length cases) in
       let find_ctor name =
         match List.find_opt (fun c -> String.equal c.ctor_name name) ind.constructors with
@@ -356,8 +371,9 @@ let rec infer (ctx : context) (t : term) : term =
             | None -> branch_ctx
           in
           let ctor_term =
-            let ctor_args = args @ List.map (fun a -> Var a.arg_name) case.pattern.args in
-            if ctor_args = [] then Var ctor.ctor_name else App (Var ctor.ctor_name, ctor_args)
+            let ctor_args = args @ List.map (fun a -> mk ?loc:a.arg_loc (Var a.arg_name)) case.pattern.args in
+            if ctor_args = [] then mk (Var ctor.ctor_name)
+            else mk (App (mk (Var ctor.ctor_name), ctor_args))
           in
           let expected_branch_ty =
             let with_scrut =
@@ -387,7 +403,7 @@ let rec infer (ctx : context) (t : term) : term =
           | GDefinition def -> def.def_type
           | GTheorem thm -> thm.thm_type
           | GExternC ext -> ext.logical_type
-          | GRepr _ -> raise (TypeError (TypeMismatch { expected = Universe Type; actual = t; context = "repr" })))
+          | GRepr _ -> raise (TypeError (TypeMismatch { expected = mk ?loc:t.loc (Universe Type); actual = t; context = "repr" })))
       | _ -> raise (TypeError (UnboundVariable name)))
 
 (** Check that a term has a given type. *)
@@ -399,7 +415,7 @@ and check (ctx : context) (t : term) (expected : term) : unit =
 (** {1 Termination Checking} *)
 
 let rec has_self_reference (self : name) (t : term) : bool =
-  match t with
+  match t.desc with
   | Var x | Global x -> String.equal x self
   | Universe _ | PrimType _ | Literal _ -> false
   | Pi { arg; result } -> has_self_reference self arg.ty || has_self_reference self result
@@ -487,7 +503,7 @@ let check_termination (def : def_decl) : unit =
         match List.nth_opt params idx with
         | None -> raise (TypeError (InvalidRecursiveArg (def.def_name, idx)))
         | Some b -> (
-            match whnf (make_ctx (empty_sig ())) b.ty with
+            match (whnf (make_ctx (empty_sig ())) b.ty).desc with
             | Var n | Global n -> Some n
             | _ -> None))
       rec_args
@@ -499,7 +515,7 @@ let check_termination (def : def_decl) : unit =
       | Some _ -> ())
     rec_args rec_param_inductives;
   let rec check_term allowed t =
-    match t with
+    match t.desc with
     | Var x | Global x ->
         if String.equal x def.def_name then
           raise (TypeError (TerminationCheckFailed def.def_name))
@@ -512,7 +528,7 @@ let check_termination (def : def_decl) : unit =
             check_term allowed body
         | App (f, args) ->
             let is_self =
-              match f with
+              match f.desc with
               | Var x | Global x -> String.equal x def.def_name
               | _ -> false
             in
@@ -526,11 +542,13 @@ let check_termination (def : def_decl) : unit =
               List.iter
                 (fun idx ->
                   match List.nth_opt args idx with
-                  | Some (Var v) ->
-                      let allowed_set = get_allowed allowed idx in
-                      if not (StringSet.mem v allowed_set) then
-                        raise (TypeError (TerminationCheckFailed def.def_name))
-                  | Some _ -> raise (TypeError (TerminationCheckFailed def.def_name))
+                  | Some arg_term -> (
+                      match arg_term.desc with
+                      | Var v ->
+                          let allowed_set = get_allowed allowed idx in
+                          if not (StringSet.mem v allowed_set) then
+                            raise (TypeError (TerminationCheckFailed def.def_name))
+                      | _ -> raise (TypeError (TerminationCheckFailed def.def_name)))
                   | None -> raise (TypeError (TerminationCheckFailed def.def_name)))
                 rec_args);
             if not is_self then check_term allowed f;
@@ -549,7 +567,7 @@ let check_termination (def : def_decl) : unit =
             check_term allowed scrutinee;
             check_term allowed motive;
             let rec_idx =
-              match scrutinee with
+              match scrutinee.desc with
               | Var v -> rec_index_of_var allowed v
               | _ -> None
             in
@@ -584,17 +602,17 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
         let ctx' =
           List.fold_left
             (fun c p ->
-              let _ = check c p.ty (Universe Type) in
-              extend c p.name p.ty)
-            ctx ind.params
-        in
-        (* Check constructor types (simplified - full check needs positivity) *)
-        List.iter
-          (fun ctor ->
-            List.iter
-              (fun arg -> check ctx' arg.ty (Universe Type))
-              ctor.ctor_args)
-          ind.constructors;
+            let _ = check c p.ty (mk ?loc:p.b_loc (Universe Type)) in
+            extend c p.name p.ty)
+          ctx ind.params
+      in
+      (* Check constructor types (simplified - full check needs positivity) *)
+      List.iter
+        (fun ctor ->
+          List.iter
+            (fun arg -> check ctx' arg.ty (mk ?loc:arg.b_loc (Universe Type)))
+            ctor.ctor_args)
+        ind.constructors;
         (* Strict positivity: inductive must not appear in negative position in args. *)
         List.iter
           (fun ctor ->
@@ -606,17 +624,17 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
           ind.constructors)
   | Definition def ->
       with_decl def.def_name def.def_loc (fun () ->
-        let _ = check ctx def.def_type (Universe Type) in
+        let _ = check ctx def.def_type (mk ?loc:def.def_loc (Universe Type)) in
         check ctx def.def_body def.def_type;
         check_termination def)
   | Theorem thm ->
       with_decl thm.thm_name thm.thm_loc (fun () ->
-        let _ = check ctx thm.thm_type (Universe Prop) in
+        let _ = check ctx thm.thm_type (mk ?loc:thm.thm_loc (Universe Prop)) in
         check ctx thm.thm_proof thm.thm_type)
   | Repr _ -> ()  (* Repr declarations are not type-checked in the logical sense *)
   | ExternC ext ->
       with_decl ext.extern_name ext.extern_loc (fun () ->
-        let _ = check ctx ext.logical_type (Universe Type) in
+        let _ = check ctx ext.logical_type (mk ?loc:ext.extern_loc (Universe Type)) in
         ())
 
 (** Check an entire module. *)
