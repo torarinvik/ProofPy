@@ -809,10 +809,11 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
       with_decl ext.extern_io_name ext.extern_io_loc (fun () -> check_extern_io ctx ext)
 
 (** Check an entire module. *)
-let check_module (mod_ : module_decl) : (signature, typing_error) result =
+let check_module (mod_ : module_decl) (initial_sig : signature) : (signature, typing_error) result =
   try
-    let sig_ = build_signature mod_.declarations in
-    let ctx = make_ctx sig_ in
+    let mod_sig = build_signature mod_.declarations in
+    let full_sig = merge_signatures initial_sig mod_sig in
+    let ctx = make_ctx full_sig in
     List.iter (check_declaration ctx) mod_.declarations;
-    Ok sig_
+    Ok full_sig
   with TypeError e -> Error e

@@ -168,9 +168,10 @@ let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option 
       body = CBlock [stmt];
     }
 
-let extract_module (mod_ : Syntax.module_decl) : c_program =
-  let sig_ = Context.build_signature mod_.declarations in
-  let ctx = Context.make_ctx sig_ in
+let extract_module (mod_ : Syntax.module_decl) (sig_ : Context.signature) : c_program =
+  let mod_sig = Context.build_signature mod_.declarations in
+  let full_sig = Context.merge_signatures sig_ mod_sig in
+  let ctx = Context.make_ctx full_sig in
   let funcs =
     List.filter_map (function
       | Syntax.Definition def -> extract_def ctx def

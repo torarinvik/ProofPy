@@ -1,0 +1,19 @@
+{
+  "module": "HelloStd",
+  "imports": ["Std.IO"],
+  "declarations": [
+    {
+      "def": {
+        "name": "main",
+        "role": "runtime",
+        "type": { "app": [{ "var": "IO" }, { "var": "Unit" }] },
+        "body": {
+          "app": [
+            { "var": "print_line" },
+            { "string": "Hello from Standard Library!" }
+          ]
+        }
+      }
+    }
+  ]
+}

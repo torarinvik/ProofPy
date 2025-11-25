@@ -22,10 +22,10 @@ let check_cmd =
         Fmt.pr "Imports: %a@."
           Fmt.(list ~sep:comma string) mod_.imports;
         Fmt.pr "Declarations: %d@." (List.length mod_.declarations);
-        match CJ.Typing.check_module mod_ with
+        let cache = CJ.Loader.create_cache () in
+        match CJ.Loader.load_imports cache [mod_.module_name] mod_ with
         | Error e ->
-            let err = CJ.Error.error_of_typing ~file e in
-            Fmt.epr "%a@." CJ.Error.pp_error err;
+            Fmt.epr "%a@." CJ.Loader.pp_error e;
             `Error (false, "type checking failed")
         | Ok _sig ->
             Fmt.pr "✓ Module type-checked successfully@.";
@@ -70,10 +70,10 @@ let eval_cmd =
         Fmt.epr "%a@." CJ.Error.pp_error err;
         `Error (false, "parsing failed")
     | Ok mod_ ->
-        match CJ.Typing.check_module mod_ with
+        let cache = CJ.Loader.create_cache () in
+        match CJ.Loader.load_imports cache [mod_.module_name] mod_ with
         | Error e ->
-            let err = CJ.Error.error_of_typing ~file e in
-            Fmt.epr "%a@." CJ.Error.pp_error err;
+            Fmt.epr "%a@." CJ.Loader.pp_error e;
             `Error (false, "type checking failed")
         | Ok sig_ ->
             let ctx = CJ.Context.make_ctx sig_ in
@@ -102,10 +102,10 @@ let run_cmd =
         Fmt.epr "%a@." CJ.Error.pp_error err;
         `Error (false, "parsing failed")
     | Ok mod_ ->
-        match CJ.Typing.check_module mod_ with
+        let cache = CJ.Loader.create_cache () in
+        match CJ.Loader.load_imports cache [mod_.module_name] mod_ with
         | Error e ->
-            let err = CJ.Error.error_of_typing ~file e in
-            Fmt.epr "%a@." CJ.Error.pp_error err;
+            Fmt.epr "%a@." CJ.Loader.pp_error e;
             `Error (false, "type checking failed")
         | Ok sig_ ->
             let ctx = CJ.Context.make_ctx sig_ in
@@ -133,13 +133,13 @@ let extract_cmd =
         Fmt.epr "%a@." CJ.Error.pp_error err;
         `Error (false, "parsing failed")
     | Ok mod_ ->
-        match CJ.Typing.check_module mod_ with
+        let cache = CJ.Loader.create_cache () in
+        match CJ.Loader.load_imports cache [mod_.module_name] mod_ with
         | Error e ->
-            let err = CJ.Error.error_of_typing ~file e in
-            Fmt.epr "%a@." CJ.Error.pp_error err;
+            Fmt.epr "%a@." CJ.Loader.pp_error e;
             `Error (false, "type checking failed")
-        | Ok _ ->
-            let prog = CJ.Extraction.extract_module mod_ in
+        | Ok sig_ ->
+            let prog = CJ.Extraction.extract_module mod_ sig_ in
             CJ.Extraction.pp_c_program Format.std_formatter prog;
             `Ok ()
   in

@@ -69,6 +69,15 @@ let lookup_sig (sig_ : signature) (name : name) : global_entry option =
 let mem_sig (sig_ : signature) (name : name) : bool =
   Hashtbl.mem sig_.entries name
 
+(** Merge two signatures. Entries in sig2 override sig1. *)
+let merge_signatures (sig1 : signature) (sig2 : signature) : signature =
+  let new_sig = {
+    entries = Hashtbl.copy sig1.entries;
+    order = sig1.order @ sig2.order;
+  } in
+  Hashtbl.iter (fun k v -> Hashtbl.replace new_sig.entries k v) sig2.entries;
+  new_sig
+
 (** {1 Combined Context} *)
 
 (** Full typing context: local context + global signature. *)

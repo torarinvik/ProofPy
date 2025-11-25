@@ -12,6 +12,7 @@ module Loc = Loc
 
 module Context = Context
 module Typing = Typing
+module Loader = Loader
 
 (** {1 Evaluation} *)
 

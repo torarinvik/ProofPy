@@ -3,6 +3,8 @@
 open Alcotest
 open Certijson
 
+let check_module m = Typing.check_module m (Context.empty_sig ())
+
 let test_identity_function () =
   let json = {|
     {
@@ -42,7 +44,7 @@ let test_identity_function () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m ->
-      match Typing.check_module m with
+      match check_module m with
       | Error e -> fail (Typing.string_of_typing_error e)
       | Ok _ -> ()
 
@@ -69,7 +71,7 @@ let test_nat_definition () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m ->
-      match Typing.check_module m with
+      match check_module m with
       | Error e -> fail (Typing.string_of_typing_error e)
       | Ok _ -> ()
 
@@ -147,7 +149,7 @@ let test_nat_plus_match () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Error e -> fail (Typing.string_of_typing_error e)
       | Ok _ -> ())
 
@@ -180,7 +182,7 @@ let test_recursion_without_rec_args () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Ok _ -> fail "expected termination failure"
       | Error (Typing.TerminationCheckFailed "bad") -> ()
       | Error (Typing.InDeclaration ("bad", _, Typing.TerminationCheckFailed "bad")) -> ()
@@ -221,7 +223,7 @@ let test_positivity_failure () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Ok _ -> fail "expected positivity failure"
       | Error (Typing.PositivityCheckFailed ("Bad", "f")) -> ()
       | Error (Typing.InDeclaration ("Bad", _, Typing.PositivityCheckFailed ("Bad", "f"))) -> ()
@@ -257,7 +259,7 @@ let test_rec_arg_not_inductive () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Ok _ -> fail "expected rec_args inductive failure"
       | Error (Typing.RecArgNotInductive ("bad_rec", 0)) -> ()
       | Error (Typing.InDeclaration ("bad_rec", _, Typing.RecArgNotInductive ("bad_rec", 0))) -> ()
@@ -306,7 +308,7 @@ let test_simple_refl_theorem () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Error e -> fail (Typing.string_of_typing_error e)
       | Ok _ -> ())
 
@@ -382,7 +384,7 @@ let test_computational_refl_theorem () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Error e -> fail (Typing.string_of_typing_error e)
       | Ok _ -> ())
 
@@ -429,7 +431,7 @@ let test_refl_type_mismatch () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Ok _ -> fail "expected type mismatch"
       | Error (Typing.TypeMismatch _) -> ()
       | Error (Typing.InDeclaration ("bad_theorem", _, Typing.TypeMismatch _)) -> ()
@@ -483,7 +485,7 @@ let test_ffi_validation () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Error e -> fail (Typing.string_of_typing_error e)
       | Ok _ -> ())
 
@@ -521,7 +523,7 @@ let test_ffi_error () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Ok _ -> fail "expected invalid repr error"
       | Error (Typing.InvalidRepr ("BadStruct", _)) -> ()
       | Error (Typing.InDeclaration ("BadStruct", _, Typing.InvalidRepr ("BadStruct", _))) -> ()
@@ -596,7 +598,7 @@ let test_extern_io () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Error e -> fail (Typing.string_of_typing_error e)
       | Ok _ -> ())
 
@@ -813,7 +815,7 @@ let test_list_length_nil () =
   match Json_parser.parse_string json with
   | Error e -> fail (Json_parser.show_parse_error e)
   | Ok m -> (
-      match Typing.check_module m with
+      match check_module m with
       | Error e -> fail (Typing.string_of_typing_error e)
       | Ok _ -> ())
 
