@@ -135,9 +135,9 @@ let constructor_type (ind : inductive_decl) (ctor : constructor_decl) : term =
   (* Result type: I p₁ ... pₙ *)
   let result =
     match ind.params with
-    | [] -> Global ind.ind_name
+    | [] -> Var ind.ind_name
     | params ->
-        App (Global ind.ind_name, List.map (fun p -> Var p.name) params)
+        App (Var ind.ind_name, List.map (fun p -> Var p.name) params)
   in
   (* Add constructor arguments *)
   let with_args =

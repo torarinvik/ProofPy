@@ -124,6 +124,10 @@ and conv_whnf (ctx : context) (t1 : term) (t2 : term) : bool =
       conv ctx t1 t2 && conv ctx v1 v2
   | _ -> false
 
+(** Substitute a list of (name, term) pairs into a term. *)
+let subst_many (substs : (name * term) list) (t : term) : term =
+  List.fold_left (fun acc (x, s) -> subst x s acc) t substs
+
 (** {1 Type Inference} *)
 
 (** Infer the type of a term. *)
@@ -192,30 +196,93 @@ let rec infer (ctx : context) (t : term) : term =
       | _ -> raise (TypeError (TypeMismatch { expected = Eq { ty = Universe Type; lhs = Var "_"; rhs = Var "_" }; actual = proof_ty'; context = "rewrite proof" })))
   | Match { scrutinee; motive; as_name; cases; coverage_hint = _ } ->
       let scrut_ty = infer ctx scrutinee in
-      let _ = 
-        let ctx' = match as_name with
-          | Some n -> extend ctx n scrut_ty
-          | None -> ctx
-        in
-        check ctx' motive (Universe Type)
+      let scrut_ty_whnf = whnf ctx scrut_ty in
+      let head, args =
+        match scrut_ty_whnf with
+        | App (f, args) -> (f, args)
+        | t -> (t, [])
       in
-      (* Check each case *)
+      let ind =
+        match head with
+        | Var n | Global n -> (
+            match lookup ctx n with
+            | Some (`Global (GInductive ind)) -> ind
+            | _ -> raise (TypeError (UnknownInductive n)))
+        | _ -> raise (TypeError (InvalidPattern "scrutinee is not an inductive type"))
+      in
+      if List.length args <> List.length ind.params then
+        raise (TypeError (TypeMismatch { expected = inductive_type ind; actual = scrut_ty; context = "match scrutinee parameters" }));
+      (* Instantiate inductive parameters and check their types. *)
+      let param_substs =
+        let rec build acc params args =
+          match (params, args) with
+          | [], [] -> acc
+          | p :: ps, a :: as_ ->
+              let param_ty = subst_many acc p.ty in
+              let _ = check ctx a param_ty in
+              build ((p.name, a) :: acc) ps as_
+          | _ -> acc
+        in
+        build [] ind.params args
+      in
+      let motive_ctx =
+        match as_name with
+        | Some n -> extend ctx n scrut_ty
+        | None -> ctx
+      in
+      let motive_universe =
+        match whnf ctx (infer motive_ctx motive) with
+        | Universe u -> u
+        | other -> raise (TypeError (NotAType other))
+      in
+      let _ = motive_universe in
+      let seen = Hashtbl.create (List.length cases) in
+      let find_ctor name =
+        match List.find_opt (fun c -> String.equal c.ctor_name name) ind.constructors with
+        | Some ctor -> ctor
+        | None -> raise (TypeError (UnknownConstructor name))
+      in
       List.iter
         (fun case ->
-          let _ctor_ty = infer ctx (Global case.pattern.ctor) in
-          (* Simplified: just check the body has the motive type *)
-          let ctx' =
-            List.fold_left
-              (fun c arg -> extend c arg.arg_name (Universe Type))  (* Placeholder *)
-              ctx case.pattern.args
+          let ctor = find_ctor case.pattern.ctor in
+          if Hashtbl.mem seen ctor.ctor_name then
+            raise (TypeError (InvalidPattern ("duplicate case for constructor " ^ ctor.ctor_name)));
+          Hashtbl.add seen ctor.ctor_name ();
+          if List.length case.pattern.args <> List.length ctor.ctor_args then
+            raise (TypeError (InvalidPattern "constructor argument count mismatch"));
+          let ctor_arg_tys =
+            List.map (fun arg -> subst_many param_substs arg.ty) ctor.ctor_args
           in
-          let _ = check ctx' case.body motive in
-          ())
+          let branch_ctx =
+            List.fold_left2
+              (fun c pat arg_ty -> extend c pat.arg_name arg_ty)
+              ctx case.pattern.args ctor_arg_tys
+          in
+          let branch_ctx =
+            match as_name with
+            | Some n -> extend branch_ctx n scrut_ty
+            | None -> branch_ctx
+          in
+          let ctor_term =
+            let ctor_args = args @ List.map (fun a -> Var a.arg_name) case.pattern.args in
+            if ctor_args = [] then Var ctor.ctor_name else App (Var ctor.ctor_name, ctor_args)
+          in
+          let expected_branch_ty =
+            let with_scrut =
+              match as_name with
+              | Some n -> subst n ctor_term motive
+              | None -> motive
+            in
+            subst_many param_substs with_scrut
+          in
+          check branch_ctx case.body expected_branch_ty)
         cases;
-      (* Return motive with scrutinee substituted *)
-      (match as_name with
-      | Some n -> subst n scrutinee motive
-      | None -> motive)
+      let missing =
+        List.filter (fun c -> not (Hashtbl.mem seen c.ctor_name)) ind.constructors
+        |> List.map (fun c -> c.ctor_name)
+      in
+      if missing <> [] then raise (TypeError (NonExhaustiveMatch missing));
+      (match as_name with Some n -> subst n scrutinee motive | None -> motive)
   | Global name -> (
       match lookup ctx name with
       | Some (`Global entry) -> (
