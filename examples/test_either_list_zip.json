@@ -1,0 +1,130 @@
+{
+  "module": "Test.EitherListZip",
+  "imports": ["Std.IO", "Std.Either", "Std.List", "Std.Int", "Std.Bool"],
+  "declarations": [
+    {
+      "def": {
+        "name": "xs",
+        "role": "runtime",
+        "type": { "app": [{ "var": "List" }, { "prim": "Int32" }] },
+        "body": {
+          "app": [
+            { "var": "cons" },
+            { "prim": "Int32" },
+            { "int32": 1 },
+            {
+              "app": [
+                { "var": "cons" },
+                { "prim": "Int32" },
+                { "int32": 2 },
+                {
+                  "app": [
+                    { "var": "cons" },
+                    { "prim": "Int32" },
+                    { "int32": 3 },
+                    { "app": [{ "var": "nil" }, { "prim": "Int32" }] }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "ys",
+        "role": "runtime",
+        "type": { "app": [{ "var": "List" }, { "prim": "Int32" }] },
+        "body": {
+          "app": [
+            { "var": "cons" },
+            { "prim": "Int32" },
+            { "int32": 4 },
+            {
+              "app": [
+                { "var": "cons" },
+                { "prim": "Int32" },
+                { "int32": 5 },
+                { "app": [{ "var": "nil" }, { "prim": "Int32" }] }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "main",
+        "role": "runtime",
+        "type": { "app": [{ "var": "IO" }, { "var": "Unit" }] },
+        "body": {
+          "app": [
+            { "var": "bind" },
+            { "var": "Unit" },
+            { "var": "Unit" },
+            { "app": [{ "var": "print_line" }, { "string": "Testing Either and List.zip..." }] },
+            {
+              "lambda": {
+                "arg": { "name": "_", "type": { "var": "Unit" } },
+                "body": {
+                  "app": [
+                    { "var": "bind" },
+                    { "var": "Unit" },
+                    { "var": "Unit" },
+                    {
+                      "if": {
+                        "cond": {
+                          "app": [
+                            { "var": "is_left" },
+                            { "prim": "Int32" },
+                            { "prim": "Int32" },
+                            { "app": [{ "var": "left" }, { "prim": "Int32" }, { "prim": "Int32" }, { "int32": 1 }] }
+                          ]
+                        },
+                        "then": { "app": [{ "var": "print_line" }, { "string": "  is_left (left 1): OK" }] },
+                        "else": { "app": [{ "var": "print_line" }, { "string": "  is_left (left 1): FAILED" }] }
+                      }
+                    },
+                    {
+                      "lambda": {
+                        "arg": { "name": "_", "type": { "var": "Unit" } },
+                        "body": {
+                          "app": [
+                            { "var": "bind" },
+                            { "var": "Unit" },
+                            { "var": "Unit" },
+                            {
+                              "if": {
+                                "cond": {
+                                  "app": [
+                                    { "var": "is_right" },
+                                    { "prim": "Int32" },
+                                    { "prim": "Int32" },
+                                    { "app": [{ "var": "right" }, { "prim": "Int32" }, { "prim": "Int32" }, { "int32": 2 }] }
+                                  ]
+                                },
+                                "then": { "app": [{ "var": "print_line" }, { "string": "  is_right (right 2): OK" }] },
+                                "else": { "app": [{ "var": "print_line" }, { "string": "  is_right (right 2): FAILED" }] }
+                              }
+                            },
+                            {
+                              "lambda": {
+                                "arg": { "name": "_", "type": { "var": "Unit" } },
+                                "body": { "app": [{ "var": "print_line" }, { "string": "=== Either/List zip tests completed ===" }] }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

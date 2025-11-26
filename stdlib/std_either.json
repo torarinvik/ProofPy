@@ -1,0 +1,276 @@
+{
+  "module": "Std.Either",
+  "imports": [],
+  "declarations": [
+    {
+      "inductive": {
+        "name": "Either",
+        "params": [
+          { "name": "A", "type": { "universe": "Type" } },
+          { "name": "B", "type": { "universe": "Type" } }
+        ],
+        "universe": "Type",
+        "constructors": [
+          { "name": "left", "args": [{ "name": "value", "type": { "var": "A" } }] },
+          { "name": "right", "args": [{ "name": "value", "type": { "var": "B" } }] }
+        ]
+      }
+    },
+    {
+      "def": {
+        "name": "is_left",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "e", "type": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B" }] } },
+                    "result": { "prim": "Bool" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "e", "type": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B" }] } },
+                    "body": {
+                      "match": {
+                        "scrutinee": { "var": "e" },
+                        "motive": { "prim": "Bool" },
+                        "cases": [
+                          {
+                            "pattern": { "ctor": "left", "args": [{ "name": "_" }] },
+                            "body": { "bool": true }
+                          },
+                          {
+                            "pattern": { "ctor": "right", "args": [{ "name": "_" }] },
+                            "body": { "bool": false }
+                          }
+                        ],
+                        "coverage_hint": "complete"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "is_right",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "e", "type": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B" }] } },
+                    "result": { "prim": "Bool" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "e", "type": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B" }] } },
+                    "body": {
+                      "match": {
+                        "scrutinee": { "var": "e" },
+                        "motive": { "prim": "Bool" },
+                        "cases": [
+                          {
+                            "pattern": { "ctor": "left", "args": [{ "name": "_" }] },
+                            "body": { "bool": false }
+                          },
+                          {
+                            "pattern": { "ctor": "right", "args": [{ "name": "_" }] },
+                            "body": { "bool": true }
+                          }
+                        ],
+                        "coverage_hint": "complete"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "map_left",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "A'", "type": { "universe": "Type" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "B", "type": { "universe": "Type" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "f", "type": { "pi": { "arg": { "name": "_", "type": { "var": "A" } }, "result": { "var": "A'" } } } },
+                        "result": {
+                          "pi": {
+                            "arg": { "name": "e", "type": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B" }] } },
+                            "result": { "app": [{ "var": "Either" }, { "var": "A'" }, { "var": "B" }] }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "A'", "type": { "universe": "Type" } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "B", "type": { "universe": "Type" } },
+                    "body": {
+                      "lambda": {
+                        "arg": { "name": "f", "type": { "pi": { "arg": { "name": "_", "type": { "var": "A" } }, "result": { "var": "A'" } } } },
+                        "body": {
+                          "lambda": {
+                            "arg": { "name": "e", "type": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B" }] } },
+                            "body": {
+                              "match": {
+                                "scrutinee": { "var": "e" },
+                                "motive": { "app": [{ "var": "Either" }, { "var": "A'" }, { "var": "B" }] },
+                                "cases": [
+                                  {
+                                    "pattern": { "ctor": "left", "args": [{ "name": "x" }] },
+                                    "body": { "app": [{ "var": "left" }, { "var": "A'" }, { "var": "B" }, { "app": [{ "var": "f" }, { "var": "x" }] }] }
+                                  },
+                                  {
+                                    "pattern": { "ctor": "right", "args": [{ "name": "y" }] },
+                                    "body": { "app": [{ "var": "right" }, { "var": "A'" }, { "var": "B" }, { "var": "y" }] }
+                                  }
+                                ],
+                                "coverage_hint": "complete"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "map_right",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "B'", "type": { "universe": "Type" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "f", "type": { "pi": { "arg": { "name": "_", "type": { "var": "B" } }, "result": { "var": "B'" } } } },
+                        "result": {
+                          "pi": {
+                            "arg": { "name": "e", "type": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B" }] } },
+                            "result": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B'" }] }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "B'", "type": { "universe": "Type" } },
+                    "body": {
+                      "lambda": {
+                        "arg": { "name": "f", "type": { "pi": { "arg": { "name": "_", "type": { "var": "B" } }, "result": { "var": "B'" } } } },
+                        "body": {
+                          "lambda": {
+                            "arg": { "name": "e", "type": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B" }] } },
+                            "body": {
+                              "match": {
+                                "scrutinee": { "var": "e" },
+                                "motive": { "app": [{ "var": "Either" }, { "var": "A" }, { "var": "B'" }] },
+                                "cases": [
+                                  {
+                                    "pattern": { "ctor": "left", "args": [{ "name": "x" }] },
+                                    "body": { "app": [{ "var": "left" }, { "var": "A" }, { "var": "B'" }, { "var": "x" }] }
+                                  },
+                                  {
+                                    "pattern": { "ctor": "right", "args": [{ "name": "y" }] },
+                                    "body": { "app": [{ "var": "right" }, { "var": "A" }, { "var": "B'" }, { "app": [{ "var": "f" }, { "var": "y" }] }] }
+                                  }
+                                ],
+                                "coverage_hint": "complete"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

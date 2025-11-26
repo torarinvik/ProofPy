@@ -1115,6 +1115,182 @@
           }
         }
       }
+    },
+    {
+      "def": {
+        "name": "zip_with",
+        "role": "runtime",
+        "rec_args": [4],
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "C", "type": { "universe": "Type" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "f", "type": { "pi": { "arg": { "name": "_", "type": { "var": "A" } }, "result": { "pi": { "arg": { "name": "_", "type": { "var": "B" } }, "result": { "var": "C" } } } } } },
+                        "result": {
+                          "pi": {
+                            "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                            "result": {
+                              "pi": {
+                                "arg": { "name": "ys", "type": { "app": [{ "var": "List" }, { "var": "B" }] } },
+                                "result": { "app": [{ "var": "List" }, { "var": "C" }] }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "C", "type": { "universe": "Type" } },
+                    "body": {
+                      "lambda": {
+                        "arg": { "name": "f", "type": { "pi": { "arg": { "name": "_", "type": { "var": "A" } }, "result": { "pi": { "arg": { "name": "_", "type": { "var": "B" } }, "result": { "var": "C" } } } } } },
+                        "body": {
+                          "lambda": {
+                            "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                            "body": {
+                              "lambda": {
+                                "arg": { "name": "ys", "type": { "app": [{ "var": "List" }, { "var": "B" }] } },
+                                "body": {
+                                  "match": {
+                                    "scrutinee": { "var": "xs" },
+                                    "motive": { "app": [{ "var": "List" }, { "var": "C" }] },
+                                    "cases": [
+                                      {
+                                        "pattern": { "ctor": "nil", "args": [] },
+                                        "body": { "app": [{ "var": "nil" }, { "var": "C" }] }
+                                      },
+                                      {
+                                        "pattern": { "ctor": "cons", "args": [{ "name": "hx" }, { "name": "tx" }] },
+                                        "body": {
+                                          "match": {
+                                            "scrutinee": { "var": "ys" },
+                                            "motive": { "app": [{ "var": "List" }, { "var": "C" }] },
+                                            "cases": [
+                                              {
+                                                "pattern": { "ctor": "nil", "args": [] },
+                                                "body": { "app": [{ "var": "nil" }, { "var": "C" }] }
+                                              },
+                                              {
+                                                "pattern": { "ctor": "cons", "args": [{ "name": "hy" }, { "name": "ty" }] },
+                                                "body": {
+                                                  "app": [
+                                                    { "var": "cons" },
+                                                    { "var": "C" },
+                                                    { "app": [{ "var": "f" }, { "var": "hx" }, { "var": "hy" }] },
+                                                    { "app": [{ "var": "zip_with" }, { "var": "A" }, { "var": "B" }, { "var": "C" }, { "var": "f" }, { "var": "tx" }, { "var": "ty" }] }
+                                                  ]
+                                                }
+                                              }
+                                            ],
+                                            "coverage_hint": "complete"
+                                          }
+                                        }
+                                      }
+                                    ],
+                                    "coverage_hint": "complete"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "zip",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "ys", "type": { "app": [{ "var": "List" }, { "var": "B" }] } },
+                        "result": { "app": [{ "var": "List" }, { "app": [{ "var": "Pair" }, { "var": "A" }, { "var": "B" }] }] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "B", "type": { "universe": "Type" } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                    "body": {
+                      "lambda": {
+                        "arg": { "name": "ys", "type": { "app": [{ "var": "List" }, { "var": "B" }] } },
+                        "body": {
+                          "app": [
+                            { "var": "zip_with" },
+                            { "var": "A" },
+                            { "var": "B" },
+                            { "app": [{ "var": "Pair" }, { "var": "A" }, { "var": "B" }] },
+                            {
+                              "lambda": {
+                                "arg": { "name": "x", "type": { "var": "A" } },
+                                "body": {
+                                  "lambda": {
+                                    "arg": { "name": "y", "type": { "var": "B" } },
+                                    "body": { "app": [{ "var": "pair" }, { "var": "A" }, { "var": "B" }, { "var": "x" }, { "var": "y" }] }
+                                  }
+                                }
+                              }
+                            },
+                            { "var": "xs" },
+                            { "var": "ys" }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

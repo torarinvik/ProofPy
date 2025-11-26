@@ -1,6 +1,6 @@
 {
   "module": "Std.Nat",
-  "imports": ["Std.Bool", "Std.Option", "Std.Math"],
+  "imports": ["Std.Bool", "Std.Option", "Std.Math", "Std.Eq"],
   "declarations": [
     {
       "inductive": {
@@ -363,6 +363,103 @@
                   {
                     "pattern": { "ctor": "succ", "args": [{ "name": "m" }] },
                     "body": { "app": [{ "var": "add" }, { "int32": 1 }, { "app": [{ "var": "nat_to_int" }, { "var": "m" }] }] }
+                  }
+                ],
+                "coverage_hint": "complete"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "theorem": {
+        "name": "plus_zero_left",
+        "type": {
+          "forall": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "eq": {
+                "type": { "var": "Nat" },
+                "lhs": { "app": [{ "var": "add_nat" }, { "var": "zero" }, { "var": "n" }] },
+                "rhs": { "var": "n" }
+              }
+            }
+          }
+        },
+        "proof": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "refl": {
+                "eq": {
+                  "type": { "var": "Nat" },
+                  "lhs": { "var": "n" },
+                  "rhs": { "var": "n" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "plus_zero_right",
+        "role": "proof-only",
+        "rec_args": [0],
+        "type": {
+          "forall": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "eq": {
+                "type": { "var": "Nat" },
+                "lhs": { "app": [{ "var": "add_nat" }, { "var": "n" }, { "var": "zero" }] },
+                "rhs": { "var": "n" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "match": {
+                "scrutinee": { "var": "n" },
+                "motive": {
+                  "eq": {
+                    "type": { "var": "Nat" },
+                    "lhs": { "app": [{ "var": "add_nat" }, { "var": "k" }, { "var": "zero" }] },
+                    "rhs": { "var": "k" }
+                  }
+                },
+                "as": "k",
+                "cases": [
+                  {
+                    "pattern": { "ctor": "zero", "args": [] },
+                    "body": {
+                      "refl": {
+                        "eq": {
+                          "type": { "var": "Nat" },
+                          "lhs": { "var": "zero" },
+                          "rhs": { "var": "zero" }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "pattern": { "ctor": "succ", "args": [{ "name": "m" }] },
+                    "body": {
+                      "app": [
+                        { "var": "eq_congr1" },
+                        { "var": "Nat" },
+                        { "var": "Nat" },
+                        { "var": "succ" },
+                        { "app": [{ "var": "add_nat" }, { "var": "m" }, { "var": "zero" }] },
+                        { "var": "m" },
+                        { "app": [{ "var": "plus_zero_right" }, { "var": "m" }] }
+                      ]
+                    }
                   }
                 ],
                 "coverage_hint": "complete"

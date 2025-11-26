@@ -1,0 +1,100 @@
+{
+  "module": "Std.Eq",
+  "imports": [],
+  "declarations": [
+    {
+      "theorem": {
+        "name": "eq_sym",
+        "type": {
+          "forall": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "forall": {
+                "arg": { "name": "x", "type": { "var": "A" } },
+                "result": {
+                  "forall": {
+                    "arg": { "name": "y", "type": { "var": "A" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "H", "type": { "eq": { "type": { "var": "A" }, "lhs": { "var": "x" }, "rhs": { "var": "y" } } } },
+                        "result": { "eq": { "type": { "var": "A" }, "lhs": { "var": "y" }, "rhs": { "var": "x" } } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "proof": {
+          "lambda": { "arg": { "name": "A", "type": { "universe": "Type" } }, "body": {
+          "lambda": { "arg": { "name": "x", "type": { "var": "A" } }, "body": {
+          "lambda": { "arg": { "name": "y", "type": { "var": "A" } }, "body": {
+          "lambda": { "arg": { "name": "H", "type": { "eq": { "type": { "var": "A" }, "lhs": { "var": "x" }, "rhs": { "var": "y" } } } }, "body": {
+            "rewrite": {
+              "proof": { "var": "H" },
+              "in": { "refl": { "eq": { "type": { "var": "A" }, "lhs": { "var": "x" }, "rhs": { "var": "x" } } } }
+            }
+          }}}}}}}}
+        }
+      }
+    },
+    {
+      "theorem": {
+        "name": "eq_trans",
+        "type": {
+          "forall": { "arg": { "name": "A", "type": { "universe": "Type" } }, "result": {
+          "forall": { "arg": { "name": "x", "type": { "var": "A" } }, "result": {
+          "forall": { "arg": { "name": "y", "type": { "var": "A" } }, "result": {
+          "forall": { "arg": { "name": "z", "type": { "var": "A" } }, "result": {
+            "pi": { "arg": { "name": "H1", "type": { "eq": { "type": { "var": "A" }, "lhs": { "var": "x" }, "rhs": { "var": "y" } } } }, "result": {
+            "pi": { "arg": { "name": "H2", "type": { "eq": { "type": { "var": "A" }, "lhs": { "var": "y" }, "rhs": { "var": "z" } } } }, "result": {
+              "eq": { "type": { "var": "A" }, "lhs": { "var": "x" }, "rhs": { "var": "z" } }
+            }}}}}}}}}}}}
+        },
+        "proof": {
+          "lambda": { "arg": { "name": "A", "type": { "universe": "Type" } }, "body": {
+          "lambda": { "arg": { "name": "x", "type": { "var": "A" } }, "body": {
+          "lambda": { "arg": { "name": "y", "type": { "var": "A" } }, "body": {
+          "lambda": { "arg": { "name": "z", "type": { "var": "A" } }, "body": {
+          "lambda": { "arg": { "name": "H1", "type": { "eq": { "type": { "var": "A" }, "lhs": { "var": "x" }, "rhs": { "var": "y" } } } }, "body": {
+          "lambda": { "arg": { "name": "H2", "type": { "eq": { "type": { "var": "A" }, "lhs": { "var": "y" }, "rhs": { "var": "z" } } } }, "body": {
+            "rewrite": {
+              "proof": { "var": "H2" },
+              "in": { "var": "H1" }
+            }
+          }}}}}}}}}}}}
+        }
+      }
+    },
+    {
+      "theorem": {
+        "name": "eq_congr1",
+        "type": {
+          "forall": { "arg": { "name": "A", "type": { "universe": "Type" } }, "result": {
+          "forall": { "arg": { "name": "B", "type": { "universe": "Type" } }, "result": {
+          "forall": { "arg": { "name": "f", "type": { "pi": { "arg": { "name": "_", "type": { "var": "A" } }, "result": { "var": "B" } } } }, "result": {
+          "forall": { "arg": { "name": "x", "type": { "var": "A" } }, "result": {
+          "forall": { "arg": { "name": "y", "type": { "var": "A" } }, "result": {
+            "pi": { "arg": { "name": "H", "type": { "eq": { "type": { "var": "A" }, "lhs": { "var": "x" }, "rhs": { "var": "y" } } } }, "result": {
+              "eq": { "type": { "var": "B" }, "lhs": { "app": [{ "var": "f" }, { "var": "x" }] }, "rhs": { "app": [{ "var": "f" }, { "var": "y" }] } }
+            }}
+          }}}}}}}}}}
+        },
+        "proof": {
+          "lambda": { "arg": { "name": "A", "type": { "universe": "Type" } }, "body": {
+          "lambda": { "arg": { "name": "B", "type": { "universe": "Type" } }, "body": {
+          "lambda": { "arg": { "name": "f", "type": { "pi": { "arg": { "name": "_", "type": { "var": "A" } }, "result": { "var": "B" } } } }, "body": {
+          "lambda": { "arg": { "name": "x", "type": { "var": "A" } }, "body": {
+          "lambda": { "arg": { "name": "y", "type": { "var": "A" } }, "body": {
+          "lambda": { "arg": { "name": "H", "type": { "eq": { "type": { "var": "A" }, "lhs": { "var": "x" }, "rhs": { "var": "y" } } } }, "body": {
+            "rewrite": {
+              "proof": { "var": "H" },
+              "in": { "refl": { "eq": { "type": { "var": "B" }, "lhs": { "app": [{ "var": "f" }, { "var": "x" }] }, "rhs": { "app": [{ "var": "f" }, { "var": "x" }] } } } }
+            }
+          }}}}}}}}}}}}
+        }
+      }
+    }
+  ]
+}

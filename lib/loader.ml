@@ -47,9 +47,10 @@ let resolve_import (name : name) : string option =
     | "Std.String" -> "std_string.json"
     | "Std.Char" -> "std_char.json"
     | "Std.List" -> "std_list.json"
-    | "Std.Nat" -> "std_nat.json"
-    | "Raylib" -> "raylib.json"
-    | _ -> name ^ ".json" 
+    | "Std.Eq" -> "std_eq.json"
+    | "Std.Either" -> "std_either.json"
+    | _ ->
+        name ^ ".json" 
   in
   let paths = ["."; "stdlib"] in
   List.find_map (fun dir ->

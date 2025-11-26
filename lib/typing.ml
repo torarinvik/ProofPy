@@ -237,6 +237,54 @@ and conv_whnf (ctx : context) (t1 : term) (t2 : term) : bool =
 let subst_many (substs : (name * term) list) (t : term) : term =
   List.fold_left (fun acc (x, s) -> subst x s acc) t substs
 
+(** Substitute a term [old_t] with [new_t] in [t]. *)
+let rec subst_term (old_t : term) (new_t : term) (t : term) : term =
+  if equal_ignoring_loc old_t t then new_t
+  else
+    let fvs = free_vars old_t in
+    let is_shadowed x = List.mem x fvs in
+    match t.desc with
+    | Var _ | Universe _ | PrimType _ | Literal _ | Global _ -> t
+    | Pi { arg; result } ->
+        let arg_ty = subst_term old_t new_t arg.ty in
+        let result =
+          if is_shadowed arg.name then result
+          else subst_term old_t new_t result
+        in
+        mk ?loc:t.loc (Pi { arg = { arg with ty = arg_ty }; result })
+    | Lambda { arg; body } ->
+        let arg_ty = subst_term old_t new_t arg.ty in
+        let body =
+          if is_shadowed arg.name then body
+          else subst_term old_t new_t body
+        in
+        mk ?loc:t.loc (Lambda { arg = { arg with ty = arg_ty }; body })
+    | App (f, args) ->
+        mk ?loc:t.loc (App (subst_term old_t new_t f, List.map (subst_term old_t new_t) args))
+    | Eq { ty; lhs; rhs } ->
+        mk ?loc:t.loc (Eq { ty = subst_term old_t new_t ty; lhs = subst_term old_t new_t lhs; rhs = subst_term old_t new_t rhs })
+    | Refl { ty; value } ->
+        mk ?loc:t.loc (Refl { ty = subst_term old_t new_t ty; value = subst_term old_t new_t value })
+    | Rewrite { proof; body } ->
+        mk ?loc:t.loc (Rewrite { proof = subst_term old_t new_t proof; body = subst_term old_t new_t body })
+    | If { cond; then_; else_ } ->
+        mk ?loc:t.loc (If { cond = subst_term old_t new_t cond; then_ = subst_term old_t new_t then_; else_ = subst_term old_t new_t else_ })
+    | Match { scrutinee; motive; as_name; cases; coverage_hint } ->
+        let scrutinee = subst_term old_t new_t scrutinee in
+        let motive =
+          match as_name with
+          | Some n when is_shadowed n -> motive
+          | _ -> subst_term old_t new_t motive
+        in
+        let cases =
+          List.map (fun c ->
+            let bound = List.map (fun a -> a.arg_name) c.pattern.args in
+            if List.exists is_shadowed bound then c
+            else { c with body = subst_term old_t new_t c.body }
+          ) cases
+        in
+        mk ?loc:t.loc (Match { scrutinee; motive; as_name; cases; coverage_hint })
+
 (** Collect leading Π binders from a type. *)
 let rec collect_pi_binders (t : term) : binder list * term =
   match t.desc with
@@ -360,14 +408,20 @@ let rec infer (ctx : context) (t : term) : term =
   | Literal (LitBool _) -> mk ?loc:t.loc (PrimType Bool)
   | Literal (LitString _) -> mk ?loc:t.loc (PrimType String)
   | Pi { arg; result } ->
-      let _ = check ctx arg.ty (mk ?loc:arg.b_loc (Universe Type)) in
+      let arg_kind = infer ctx arg.ty in
+      (match arg_kind.desc with
+      | Universe _ -> ()
+      | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
       let ctx' = extend ctx arg.name arg.ty in
       let result_ty = infer ctx' result in
       (match result_ty with
       | { desc = Universe u; _ } -> mk ?loc:t.loc (Universe u)
       | _ -> raise (TypeError (NotAType (result, result.loc))))
   | Lambda { arg; body } ->
-      let _ = check ctx arg.ty (mk ?loc:arg.b_loc (Universe Type)) in
+      let arg_kind = infer ctx arg.ty in
+      (match arg_kind.desc with
+      | Universe _ -> ()
+      | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
       let ctx' = extend ctx arg.name arg.ty in
       let body_ty = infer ctx' body in
       mk ?loc:t.loc (Pi { arg; result = body_ty })
@@ -525,9 +579,33 @@ let rec infer (ctx : context) (t : term) : term =
 
 (** Check that a term has a given type. *)
 and check (ctx : context) (t : term) (expected : term) : unit =
-  let actual = infer ctx t in
-  if not (conv ctx actual expected) then
-    raise (TypeError (TypeMismatch { expected; actual; context = "check"; loc = t.loc }))
+  match t.desc with
+  | Rewrite { proof; body } ->
+      let proof_ty = infer ctx proof in
+      let proof_ty' = whnf ctx proof_ty in
+      (match proof_ty'.desc with
+      | Eq { ty = _; lhs = u; rhs = v } ->
+          let expected_body = subst_term v u expected in
+          check ctx body expected_body
+      | _ ->
+          raise (TypeError (TypeMismatch { expected = mk ?loc:t.loc (Eq { ty = mk (Universe Type); lhs = mk (Var "_"); rhs = mk (Var "_") }); actual = proof_ty'; context = "rewrite proof"; loc = proof_ty'.loc })))
+  | Lambda { arg; body } ->
+      let expected' = whnf ctx expected in
+      (match expected'.desc with
+      | Pi { arg = expected_arg; result = expected_result } ->
+          if not (conv ctx arg.ty expected_arg.ty) then
+             raise (TypeError (TypeMismatch { expected = expected_arg.ty; actual = arg.ty; context = "lambda argument type"; loc = arg.ty.loc }));
+          let ctx' = extend ctx arg.name arg.ty in
+          let expected_body_ty = subst expected_arg.name (mk (Var arg.name)) expected_result in
+          check ctx' body expected_body_ty
+      | _ ->
+          let actual = infer ctx t in
+          if not (conv ctx actual expected) then
+            raise (TypeError (TypeMismatch { expected; actual; context = "check"; loc = t.loc })))
+  | _ ->
+      let actual = infer ctx t in
+      if not (conv ctx actual expected) then
+        raise (TypeError (TypeMismatch { expected; actual; context = "check"; loc = t.loc }))
 
 (** {1 Termination Checking} *)
 
@@ -795,7 +873,10 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
         let ctx' =
           List.fold_left
             (fun c p ->
-            let _ = check c p.ty (mk ?loc:p.b_loc (Universe Type)) in
+            let p_kind = infer c p.ty in
+            (match p_kind.desc with
+            | Universe _ -> ()
+            | _ -> raise (TypeError (NotAType (p.ty, p.ty.loc))));
             extend c p.name p.ty)
           ctx ind.params
       in
@@ -803,7 +884,11 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
       List.iter
         (fun ctor ->
           List.iter
-            (fun arg -> check ctx' arg.ty (mk ?loc:arg.b_loc (Universe Type)))
+            (fun arg ->
+              let arg_kind = infer ctx' arg.ty in
+              match arg_kind.desc with
+              | Universe _ -> ()
+              | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))))
             ctor.ctor_args)
         ind.constructors;
         (* Strict positivity: inductive must not appear in negative position in args. *)
@@ -817,7 +902,10 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
           ind.constructors)
   | Definition def ->
       with_decl def.def_name def.def_loc (fun () ->
-        let _ = check ctx def.def_type (mk ?loc:def.def_loc (Universe Type)) in
+        let type_kind = infer ctx def.def_type in
+        (match type_kind.desc with
+        | Universe _ -> ()
+        | _ -> raise (TypeError (NotAType (def.def_type, def.def_type.loc))));
         check ctx def.def_body def.def_type;
         if def.def_role <> Runtime then check_termination def)
   | Theorem thm ->
