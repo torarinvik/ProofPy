@@ -1,0 +1,29 @@
+{
+  "module": "Std.CAssert",
+  "imports": ["Std.IO", "Std.Memory"],
+  "declarations": [
+    {
+      "extern_io": {
+        "name": "assert",
+        "c_name": "cj_assert",
+        "header": "<certijson_assert.h>",
+        "args": [
+          { "name": "cond", "repr": "Int" },
+          { "name": "msg", "repr": "ConstCharPtr" }
+        ],
+        "result": null,
+        "type": {
+          "pi": {
+            "arg": { "name": "cond", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "msg", "type": { "prim": "String" } },
+                "result": { "app": [{ "var": "IO" }, { "var": "Unit" }] }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

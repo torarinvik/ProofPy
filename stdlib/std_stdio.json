@@ -1,0 +1,1370 @@
+{
+  "module": "Std.CStdIO",
+  "imports": [
+    "Std.IO",
+    "Std.Memory"
+  ],
+  "declarations": [
+    {
+      "repr": {
+        "name": "FilePtr",
+        "kind": "primitive",
+        "c_type": "FILE*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "Long",
+        "kind": "primitive",
+        "c_type": "long",
+        "size_bits": 64,
+        "signed": true
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fopen",
+        "c_name": "fopen",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "filename",
+            "repr": "ConstCharPtr"
+          },
+          {
+            "name": "mode",
+            "repr": "ConstCharPtr"
+          }
+        ],
+        "result": {
+          "repr": "FilePtr"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "filename",
+              "type": {
+                "prim": "String"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "mode",
+                  "type": {
+                    "prim": "String"
+                  }
+                },
+                "result": {
+                  "app": [
+                    {
+                      "var": "IO"
+                    },
+                    {
+                      "var": "FilePtr"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fclose",
+        "c_name": "fclose",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "prim": "Int32"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fflush",
+        "c_name": "fflush",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "prim": "Int32"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fread",
+        "c_name": "fread",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "ptr",
+            "repr": "VoidPtr"
+          },
+          {
+            "name": "size",
+            "repr": "SizeT"
+          },
+          {
+            "name": "nmemb",
+            "repr": "SizeT"
+          },
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "SizeT"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "ptr",
+              "type": {
+                "var": "VoidPtr"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "size",
+                  "type": {
+                    "prim": "Int64"
+                  }
+                },
+                "result": {
+                  "pi": {
+                    "arg": {
+                      "name": "nmemb",
+                      "type": {
+                        "prim": "Int64"
+                      }
+                    },
+                    "result": {
+                      "pi": {
+                        "arg": {
+                          "name": "stream",
+                          "type": {
+                            "var": "FilePtr"
+                          }
+                        },
+                        "result": {
+                          "app": [
+                            {
+                              "var": "IO"
+                            },
+                            {
+                              "prim": "Int64"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fwrite",
+        "c_name": "fwrite",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "ptr",
+            "repr": "ConstVoidPtr"
+          },
+          {
+            "name": "size",
+            "repr": "SizeT"
+          },
+          {
+            "name": "nmemb",
+            "repr": "SizeT"
+          },
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "SizeT"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "ptr",
+              "type": {
+                "var": "VoidPtr"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "size",
+                  "type": {
+                    "prim": "Int64"
+                  }
+                },
+                "result": {
+                  "pi": {
+                    "arg": {
+                      "name": "nmemb",
+                      "type": {
+                        "prim": "Int64"
+                      }
+                    },
+                    "result": {
+                      "pi": {
+                        "arg": {
+                          "name": "stream",
+                          "type": {
+                            "var": "FilePtr"
+                          }
+                        },
+                        "result": {
+                          "app": [
+                            {
+                              "var": "IO"
+                            },
+                            {
+                              "prim": "Int64"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fseek",
+        "c_name": "fseek",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          },
+          {
+            "name": "offset",
+            "repr": "Long"
+          },
+          {
+            "name": "whence",
+            "repr": "Int"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "offset",
+                  "type": {
+                    "prim": "Int64"
+                  }
+                },
+                "result": {
+                  "pi": {
+                    "arg": {
+                      "name": "whence",
+                      "type": {
+                        "prim": "Int32"
+                      }
+                    },
+                    "result": {
+                      "app": [
+                        {
+                          "var": "IO"
+                        },
+                        {
+                          "prim": "Int32"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "ftell",
+        "c_name": "ftell",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "Long"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "prim": "Int64"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "rewind",
+        "c_name": "rewind",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": null,
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "var": "Unit"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "feof",
+        "c_name": "feof",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "prim": "Int32"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "ferror",
+        "c_name": "ferror",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "prim": "Int32"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "clearerr",
+        "c_name": "clearerr",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": null,
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "var": "Unit"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fgetc",
+        "c_name": "fgetc",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "prim": "Int32"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fputc",
+        "c_name": "fputc",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "c",
+            "repr": "Int"
+          },
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "c",
+              "type": {
+                "prim": "Int32"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "stream",
+                  "type": {
+                    "var": "FilePtr"
+                  }
+                },
+                "result": {
+                  "app": [
+                    {
+                      "var": "IO"
+                    },
+                    {
+                      "prim": "Int32"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fgets",
+        "c_name": "fgets",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "s",
+            "repr": "CharPtr"
+          },
+          {
+            "name": "n",
+            "repr": "Int"
+          },
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "CharPtr"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "s",
+              "type": {
+                "var": "VoidPtr"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "n",
+                  "type": {
+                    "prim": "Int32"
+                  }
+                },
+                "result": {
+                  "pi": {
+                    "arg": {
+                      "name": "stream",
+                      "type": {
+                        "var": "FilePtr"
+                      }
+                    },
+                    "result": {
+                      "app": [
+                        {
+                          "var": "IO"
+                        },
+                        {
+                          "var": "VoidPtr"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fputs",
+        "c_name": "fputs",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "s",
+            "repr": "ConstCharPtr"
+          },
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "s",
+              "type": {
+                "prim": "String"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "stream",
+                  "type": {
+                    "var": "FilePtr"
+                  }
+                },
+                "result": {
+                  "app": [
+                    {
+                      "var": "IO"
+                    },
+                    {
+                      "prim": "Int32"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "ungetc",
+        "c_name": "ungetc",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "c",
+            "repr": "Int"
+          },
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "c",
+              "type": {
+                "prim": "Int32"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "stream",
+                  "type": {
+                    "var": "FilePtr"
+                  }
+                },
+                "result": {
+                  "app": [
+                    {
+                      "var": "IO"
+                    },
+                    {
+                      "prim": "Int32"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "remove",
+        "c_name": "remove",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "path",
+            "repr": "ConstCharPtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "path",
+              "type": {
+                "prim": "String"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "prim": "Int32"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "tmpfile",
+        "c_name": "tmpfile",
+        "header": "<stdio.h>",
+        "args": [],
+        "result": {
+          "repr": "FilePtr"
+        },
+        "type": {
+          "app": [
+            {
+              "var": "IO"
+            },
+            {
+              "var": "FilePtr"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "tmpnam",
+        "c_name": "tmpnam",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "s",
+            "repr": "CharPtr"
+          }
+        ],
+        "result": {
+          "repr": "CharPtr"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "s",
+              "type": {
+                "var": "VoidPtr"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "var": "VoidPtr"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "printf",
+        "c_name": "cj_printf",
+        "header": "<certijson_printf.h>",
+        "args": [
+          {
+            "name": "fmt",
+            "repr": "ConstCharPtr"
+          },
+          {
+            "name": "arg",
+            "repr": "VoidPtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "fmt",
+              "type": {
+                "prim": "String"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "arg",
+                  "type": {
+                    "var": "VoidPtr"
+                  }
+                },
+                "result": {
+                  "app": [
+                    {
+                      "var": "IO"
+                    },
+                    {
+                      "prim": "Int32"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "fprintf",
+        "c_name": "cj_fprintf",
+        "header": "<certijson_printf.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          },
+          {
+            "name": "fmt",
+            "repr": "ConstCharPtr"
+          },
+          {
+            "name": "arg",
+            "repr": "VoidPtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "fmt",
+                  "type": {
+                    "prim": "String"
+                  }
+                },
+                "result": {
+                  "pi": {
+                    "arg": {
+                      "name": "arg",
+                      "type": {
+                        "var": "VoidPtr"
+                      }
+                    },
+                    "result": {
+                      "app": [
+                        {
+                          "var": "IO"
+                        },
+                        {
+                          "prim": "Int32"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "sprintf",
+        "c_name": "cj_sprintf",
+        "header": "<certijson_printf.h>",
+        "args": [
+          {
+            "name": "str",
+            "repr": "CharPtr"
+          },
+          {
+            "name": "fmt",
+            "repr": "ConstCharPtr"
+          },
+          {
+            "name": "arg",
+            "repr": "VoidPtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "str",
+              "type": {
+                "var": "VoidPtr"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "fmt",
+                  "type": {
+                    "prim": "String"
+                  }
+                },
+                "result": {
+                  "pi": {
+                    "arg": {
+                      "name": "arg",
+                      "type": {
+                        "var": "VoidPtr"
+                      }
+                    },
+                    "result": {
+                      "app": [
+                        {
+                          "var": "IO"
+                        },
+                        {
+                          "prim": "Int32"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "snprintf",
+        "c_name": "cj_snprintf",
+        "header": "<certijson_printf.h>",
+        "args": [
+          {
+            "name": "str",
+            "repr": "CharPtr"
+          },
+          {
+            "name": "size",
+            "repr": "SizeT"
+          },
+          {
+            "name": "fmt",
+            "repr": "ConstCharPtr"
+          },
+          {
+            "name": "arg",
+            "repr": "VoidPtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "str",
+              "type": {
+                "var": "VoidPtr"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "size",
+                  "type": {
+                    "prim": "Int64"
+                  }
+                },
+                "result": {
+                  "pi": {
+                    "arg": {
+                      "name": "fmt",
+                      "type": {
+                        "prim": "String"
+                      }
+                    },
+                    "result": {
+                      "pi": {
+                        "arg": {
+                          "name": "arg",
+                          "type": {
+                            "var": "VoidPtr"
+                          }
+                        },
+                        "result": {
+                          "app": [
+                            {
+                              "var": "IO"
+                            },
+                            {
+                              "prim": "Int32"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "puts",
+        "c_name": "puts",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "s",
+            "repr": "ConstCharPtr"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "s",
+              "type": {
+                "prim": "String"
+              }
+            },
+            "result": {
+              "app": [
+                {
+                  "var": "IO"
+                },
+                {
+                  "prim": "Int32"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "freopen",
+        "c_name": "freopen",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "filename",
+            "repr": "ConstCharPtr"
+          },
+          {
+            "name": "mode",
+            "repr": "ConstCharPtr"
+          },
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          }
+        ],
+        "result": {
+          "repr": "FilePtr"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "filename",
+              "type": {
+                "prim": "String"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "mode",
+                  "type": {
+                    "prim": "String"
+                  }
+                },
+                "result": {
+                  "pi": {
+                    "arg": {
+                      "name": "stream",
+                      "type": {
+                        "var": "FilePtr"
+                      }
+                    },
+                    "result": {
+                      "app": [
+                        {
+                          "var": "IO"
+                        },
+                        {
+                          "var": "FilePtr"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "setbuf",
+        "c_name": "setbuf",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          },
+          {
+            "name": "buf",
+            "repr": "CharPtr"
+          }
+        ],
+        "result": null,
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "buf",
+                  "type": {
+                    "var": "VoidPtr"
+                  }
+                },
+                "result": {
+                  "app": [
+                    {
+                      "var": "IO"
+                    },
+                    {
+                      "var": "Unit"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "setvbuf",
+        "c_name": "setvbuf",
+        "header": "<stdio.h>",
+        "args": [
+          {
+            "name": "stream",
+            "repr": "FilePtr"
+          },
+          {
+            "name": "buf",
+            "repr": "CharPtr"
+          },
+          {
+            "name": "mode",
+            "repr": "Int"
+          },
+          {
+            "name": "size",
+            "repr": "SizeT"
+          }
+        ],
+        "result": {
+          "repr": "Int"
+        },
+        "type": {
+          "pi": {
+            "arg": {
+              "name": "stream",
+              "type": {
+                "var": "FilePtr"
+              }
+            },
+            "result": {
+              "pi": {
+                "arg": {
+                  "name": "buf",
+                  "type": {
+                    "var": "VoidPtr"
+                  }
+                },
+                "result": {
+                  "pi": {
+                    "arg": {
+                      "name": "mode",
+                      "type": {
+                        "prim": "Int32"
+                      }
+                    },
+                    "result": {
+                      "pi": {
+                        "arg": {
+                          "name": "size",
+                          "type": {
+                            "prim": "Int64"
+                          }
+                        },
+                        "result": {
+                          "app": [
+                            {
+                              "var": "IO"
+                            },
+                            {
+                              "prim": "Int32"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

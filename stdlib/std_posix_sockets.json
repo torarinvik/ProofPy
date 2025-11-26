@@ -1,0 +1,456 @@
+{
+  "module": "Std.POSIXSockets",
+  "imports": ["Std.IO", "Std.Memory", "Std.POSIX"],
+  "declarations": [
+    {
+      "repr": {
+        "name": "SockLenT",
+        "kind": "primitive",
+        "c_type": "socklen_t",
+        "size_bits": 32,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "SockLenTPtr",
+        "kind": "primitive",
+        "c_type": "socklen_t*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "SockAddrPtr",
+        "kind": "primitive",
+        "c_type": "struct sockaddr*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "ConstSockAddrPtr",
+        "kind": "primitive",
+        "c_type": "const struct sockaddr*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "AddrInfoPtr",
+        "kind": "primitive",
+        "c_type": "struct addrinfo*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "ConstAddrInfoPtr",
+        "kind": "primitive",
+        "c_type": "const struct addrinfo*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "AddrInfoPtrPtr",
+        "kind": "primitive",
+        "c_type": "struct addrinfo**",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "extern_io": {
+        "name": "socket",
+        "c_name": "socket",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "domain", "repr": "Int" },
+          { "name": "type", "repr": "Int" },
+          { "name": "protocol", "repr": "Int" }
+        ],
+        "result": { "repr": "FD" },
+        "type": {
+          "pi": {
+            "arg": { "name": "domain", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "type", "type": { "prim": "Int32" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "protocol", "type": { "prim": "Int32" } },
+                    "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "connect",
+        "c_name": "connect",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "sockfd", "repr": "FD" },
+          { "name": "addr", "repr": "ConstSockAddrPtr" },
+          { "name": "addrlen", "repr": "SockLenT" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "sockfd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "addr", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "addrlen", "type": { "prim": "Int64" } },
+                    "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "bind",
+        "c_name": "bind",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "sockfd", "repr": "FD" },
+          { "name": "addr", "repr": "ConstSockAddrPtr" },
+          { "name": "addrlen", "repr": "SockLenT" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "sockfd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "addr", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "addrlen", "type": { "prim": "Int64" } },
+                    "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "listen",
+        "c_name": "listen",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "sockfd", "repr": "FD" },
+          { "name": "backlog", "repr": "Int" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "sockfd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "backlog", "type": { "prim": "Int32" } },
+                "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "accept",
+        "c_name": "accept",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "sockfd", "repr": "FD" },
+          { "name": "addr", "repr": "SockAddrPtr" },
+          { "name": "addrlen", "repr": "SockLenTPtr" }
+        ],
+        "result": { "repr": "FD" },
+        "type": {
+          "pi": {
+            "arg": { "name": "sockfd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "addr", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "addrlen", "type": { "var": "VoidPtr" } },
+                    "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "send",
+        "c_name": "send",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "sockfd", "repr": "FD" },
+          { "name": "buf", "repr": "ConstVoidPtr" },
+          { "name": "len", "repr": "SizeT" },
+          { "name": "flags", "repr": "Int" }
+        ],
+        "result": { "repr": "SSizeT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "sockfd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "buf", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "len", "type": { "prim": "Int64" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "flags", "type": { "prim": "Int32" } },
+                        "result": { "app": [{ "var": "IO" }, { "var": "SSizeT" }] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "recv",
+        "c_name": "recv",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "sockfd", "repr": "FD" },
+          { "name": "buf", "repr": "VoidPtr" },
+          { "name": "len", "repr": "SizeT" },
+          { "name": "flags", "repr": "Int" }
+        ],
+        "result": { "repr": "SSizeT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "sockfd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "buf", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "len", "type": { "prim": "Int64" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "flags", "type": { "prim": "Int32" } },
+                        "result": { "app": [{ "var": "IO" }, { "var": "SSizeT" }] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "shutdown",
+        "c_name": "shutdown",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "sockfd", "repr": "FD" },
+          { "name": "how", "repr": "Int" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "sockfd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "how", "type": { "prim": "Int32" } },
+                "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "getsockopt",
+        "c_name": "getsockopt",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "sockfd", "repr": "FD" },
+          { "name": "level", "repr": "Int" },
+          { "name": "optname", "repr": "Int" },
+          { "name": "optval", "repr": "VoidPtr" },
+          { "name": "optlen", "repr": "SockLenTPtr" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "sockfd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "level", "type": { "prim": "Int32" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "optname", "type": { "prim": "Int32" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "optval", "type": { "var": "VoidPtr" } },
+                        "result": {
+                          "pi": {
+                            "arg": { "name": "optlen", "type": { "var": "VoidPtr" } },
+                            "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "setsockopt",
+        "c_name": "setsockopt",
+        "header": "<sys/socket.h>",
+        "args": [
+          { "name": "sockfd", "repr": "FD" },
+          { "name": "level", "repr": "Int" },
+          { "name": "optname", "repr": "Int" },
+          { "name": "optval", "repr": "ConstVoidPtr" },
+          { "name": "optlen", "repr": "SockLenT" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "sockfd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "level", "type": { "prim": "Int32" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "optname", "type": { "prim": "Int32" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "optval", "type": { "var": "VoidPtr" } },
+                        "result": {
+                          "pi": {
+                            "arg": { "name": "optlen", "type": { "prim": "Int64" } },
+                            "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "getaddrinfo",
+        "c_name": "getaddrinfo",
+        "header": "<netdb.h>",
+        "args": [
+          { "name": "node", "repr": "ConstCharPtr" },
+          { "name": "service", "repr": "ConstCharPtr" },
+          { "name": "hints", "repr": "ConstAddrInfoPtr" },
+          { "name": "res", "repr": "AddrInfoPtrPtr" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "node", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "service", "type": { "prim": "String" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "hints", "type": { "var": "VoidPtr" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "res", "type": { "var": "VoidPtr" } },
+                        "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "freeaddrinfo",
+        "c_name": "freeaddrinfo",
+        "header": "<netdb.h>",
+        "args": [
+          { "name": "res", "repr": "AddrInfoPtr" }
+        ],
+        "result": null,
+        "type": {
+          "pi": {
+            "arg": { "name": "res", "type": { "var": "VoidPtr" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "Unit" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_c": {
+        "name": "gai_strerror",
+        "c_name": "gai_strerror",
+        "header": "<netdb.h>",
+        "signature": {
+          "return": { "repr": "ConstCharPtr" },
+          "args": [
+            { "name": "errcode", "repr": "Int" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "errcode", "type": { "prim": "Int32" } },
+            "result": { "prim": "String" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    }
+  ]
+}

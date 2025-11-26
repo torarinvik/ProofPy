@@ -1,0 +1,289 @@
+{
+  "module": "Std.POSIX",
+  "imports": ["Std.IO", "Std.Memory"],
+  "declarations": [
+    {
+      "repr": {
+        "name": "OffT",
+        "kind": "primitive",
+        "c_type": "off_t",
+        "size_bits": 64,
+        "signed": true
+      }
+    },
+    {
+      "repr": {
+        "name": "ModeT",
+        "kind": "primitive",
+        "c_type": "mode_t",
+        "size_bits": 32,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "FD",
+        "kind": "primitive",
+        "c_type": "int",
+        "size_bits": 32,
+        "signed": true
+      }
+    },
+    {
+      "repr": {
+        "name": "SSizeT",
+        "kind": "primitive",
+        "c_type": "ssize_t",
+        "size_bits": 64,
+        "signed": true
+      }
+    },
+    {
+      "extern_io": {
+        "name": "open",
+        "c_name": "open",
+        "header": "<fcntl.h>",
+        "args": [
+          { "name": "path", "repr": "ConstCharPtr" },
+          { "name": "flags", "repr": "Int" },
+          { "name": "mode", "repr": "ModeT" }
+        ],
+        "result": { "repr": "FD" },
+        "type": {
+          "pi": {
+            "arg": { "name": "path", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "flags", "type": { "prim": "Int32" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "mode", "type": { "prim": "Int32" } },
+                    "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "close",
+        "c_name": "close",
+        "header": "<unistd.h>",
+        "args": [
+          { "name": "fd", "repr": "FD" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "fd", "type": { "prim": "Int32" } },
+            "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "read",
+        "c_name": "read",
+        "header": "<unistd.h>",
+        "args": [
+          { "name": "fd", "repr": "FD" },
+          { "name": "buf", "repr": "VoidPtr" },
+          { "name": "count", "repr": "SizeT" }
+        ],
+        "result": { "repr": "SSizeT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "fd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "buf", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "count", "type": { "prim": "Int64" } },
+                    "result": { "app": [{ "var": "IO" }, { "var": "SSizeT" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "write",
+        "c_name": "write",
+        "header": "<unistd.h>",
+        "args": [
+          { "name": "fd", "repr": "FD" },
+          { "name": "buf", "repr": "ConstVoidPtr" },
+          { "name": "count", "repr": "SizeT" }
+        ],
+        "result": { "repr": "SSizeT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "fd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "buf", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "count", "type": { "prim": "Int64" } },
+                    "result": { "app": [{ "var": "IO" }, { "var": "SSizeT" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "lseek",
+        "c_name": "lseek",
+        "header": "<unistd.h>",
+        "args": [
+          { "name": "fd", "repr": "FD" },
+          { "name": "offset", "repr": "OffT" },
+          { "name": "whence", "repr": "Int" }
+        ],
+        "result": { "repr": "OffT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "fd", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "offset", "type": { "prim": "Int64" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "whence", "type": { "prim": "Int32" } },
+                    "result": { "app": [{ "var": "IO" }, { "prim": "Int64" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "unlink",
+        "c_name": "unlink",
+        "header": "<unistd.h>",
+        "args": [
+          { "name": "path", "repr": "ConstCharPtr" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "path", "type": { "prim": "String" } },
+            "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "rename",
+        "c_name": "rename",
+        "header": "<stdio.h>",
+        "args": [
+          { "name": "oldpath", "repr": "ConstCharPtr" },
+          { "name": "newpath", "repr": "ConstCharPtr" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "oldpath", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "newpath", "type": { "prim": "String" } },
+                "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "getcwd",
+        "c_name": "getcwd",
+        "header": "<unistd.h>",
+        "args": [
+          { "name": "buf", "repr": "VoidPtr" },
+          { "name": "size", "repr": "SizeT" }
+        ],
+        "result": { "repr": "CharPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "buf", "type": { "var": "VoidPtr" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "size", "type": { "prim": "Int64" } },
+                "result": { "app": [{ "var": "IO" }, { "prim": "String" }] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "chdir",
+        "c_name": "chdir",
+        "header": "<unistd.h>",
+        "args": [
+          { "name": "path", "repr": "ConstCharPtr" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "path", "type": { "prim": "String" } },
+            "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "sleep",
+        "c_name": "sleep",
+        "header": "<unistd.h>",
+        "args": [
+          { "name": "seconds", "repr": "SizeT" }
+        ],
+        "result": { "repr": "SizeT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "seconds", "type": { "prim": "Int64" } },
+            "result": { "app": [{ "var": "IO" }, { "prim": "Int64" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "usleep",
+        "c_name": "usleep",
+        "header": "<unistd.h>",
+        "args": [
+          { "name": "usec", "repr": "SizeT" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "usec", "type": { "prim": "Int64" } },
+            "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "module": "Std.CEnv",
+  "imports": ["Std.IO", "Std.Memory"],
+  "declarations": [
+    {
+      "extern_io": {
+        "name": "getenv",
+        "c_name": "getenv",
+        "header": "<stdlib.h>",
+        "args": [
+          { "name": "name", "repr": "ConstCharPtr" }
+        ],
+        "result": { "repr": "CharPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "name", "type": { "prim": "String" } },
+            "result": { "app": [{ "var": "IO" }, { "prim": "String" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "setenv",
+        "c_name": "setenv",
+        "header": "<stdlib.h>",
+        "args": [
+          { "name": "name", "repr": "ConstCharPtr" },
+          { "name": "value", "repr": "ConstCharPtr" },
+          { "name": "overwrite", "repr": "Int" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "name", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "value", "type": { "prim": "String" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "overwrite", "type": { "prim": "Int32" } },
+                    "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "unsetenv",
+        "c_name": "unsetenv",
+        "header": "<stdlib.h>",
+        "args": [
+          { "name": "name", "repr": "ConstCharPtr" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "name", "type": { "prim": "String" } },
+            "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "system",
+        "c_name": "system",
+        "header": "<stdlib.h>",
+        "args": [
+          { "name": "command", "repr": "ConstCharPtr" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "command", "type": { "prim": "String" } },
+            "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "exit",
+        "c_name": "exit",
+        "header": "<stdlib.h>",
+        "args": [
+          { "name": "status", "repr": "Int" }
+        ],
+        "result": null,
+        "type": {
+          "pi": {
+            "arg": { "name": "status", "type": { "prim": "Int32" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "Unit" }] }
+          }
+        }
+      }
+    }
+  ]
+}

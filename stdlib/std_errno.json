@@ -1,0 +1,65 @@
+{
+  "module": "Std.CErrno",
+  "imports": ["Std.IO", "Std.Memory"],
+  "declarations": [
+    {
+      "extern_io": {
+        "name": "get_errno",
+        "c_name": "cj_get_errno",
+        "header": "<certijson_errno.h>",
+        "args": [],
+        "result": { "repr": "Int" },
+        "type": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "set_errno",
+        "c_name": "cj_set_errno",
+        "header": "<certijson_errno.h>",
+        "args": [{ "name": "v", "repr": "Int" }],
+        "result": null,
+        "type": {
+          "pi": {
+            "arg": { "name": "v", "type": { "prim": "Int32" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "Unit" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "perror",
+        "c_name": "perror",
+        "header": "<stdio.h>",
+        "args": [{ "name": "s", "repr": "ConstCharPtr" }],
+        "result": null,
+        "type": {
+          "pi": {
+            "arg": { "name": "s", "type": { "prim": "String" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "Unit" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_c": {
+        "name": "strerror",
+        "c_name": "strerror",
+        "header": "<string.h>",
+        "signature": {
+          "return": { "repr": "CharPtr" },
+          "args": [{ "name": "errnum", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "errnum", "type": { "prim": "Int32" } },
+            "result": { "prim": "String" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    }
+  ]
+}

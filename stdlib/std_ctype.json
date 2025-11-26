@@ -1,0 +1,272 @@
+{
+  "module": "Std.CCtype",
+  "imports": ["Std.IO", "Std.Memory"],
+  "declarations": [
+    {
+      "extern_c": {
+        "name": "isalnum",
+        "c_name": "isalnum",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isalpha",
+        "c_name": "isalpha",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isblank",
+        "c_name": "isblank",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "iscntrl",
+        "c_name": "iscntrl",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isdigit",
+        "c_name": "isdigit",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isgraph",
+        "c_name": "isgraph",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "islower",
+        "c_name": "islower",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isprint",
+        "c_name": "isprint",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "ispunct",
+        "c_name": "ispunct",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isspace",
+        "c_name": "isspace",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isupper",
+        "c_name": "isupper",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isxdigit",
+        "c_name": "isxdigit",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "tolower",
+        "c_name": "tolower",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "toupper",
+        "c_name": "toupper",
+        "header": "<ctype.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "c", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "c", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    }
+  ]
+}

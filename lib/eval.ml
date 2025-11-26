@@ -20,6 +20,7 @@ type value =
   | VNeutral of neutral
   | VWorld
   | VExternIO of extern_io_decl * value list
+  | VBuiltin of string * value list
 
 (** Neutral terms (stuck computations). *)
 and neutral =
@@ -50,14 +51,17 @@ let rec eval (ctx : context) (env : env) (t : term) : value =
       match lookup_env env x with
       | Some v -> v
       | None -> (
-          match lookup ctx x with
-          | Some (`Global (GDefinition def)) when def.def_role <> ProofOnly ->
-              eval ctx env def.def_body
-          | Some (`Global (GConstructor _)) ->
-              VConstructor (x, [])
-          | Some (`Global (GExternIO ext)) ->
-              VExternIO (ext, [])
-          | _ -> VNeutral (NVar x)))
+          match x with
+          | "add" | "sub" | "mul" | "div" | "lt" | "gt" | "eq" -> VBuiltin (x, [])
+          | _ -> (
+              match lookup ctx x with
+              | Some (`Global (GDefinition def)) when def.def_role <> ProofOnly ->
+                  eval ctx env def.def_body
+              | Some (`Global (GConstructor _)) ->
+                  VConstructor (x, [])
+              | Some (`Global (GExternIO ext)) ->
+                  VExternIO (ext, [])
+              | _ -> VNeutral (NVar x))))
   | Universe u -> VUniverse u
   | PrimType p -> VPrimType p
   | Literal l -> VLiteral l
@@ -87,14 +91,17 @@ let rec eval (ctx : context) (env : env) (t : term) : value =
       | VNeutral n -> VNeutral (NIf (n, then_, else_))
       | _ -> failwith "Runtime error: If condition must be a boolean")
   | Global name -> (
-      match lookup ctx name with
-      | Some (`Global (GDefinition def)) when def.def_role <> ProofOnly ->
-          eval ctx env def.def_body
-      | Some (`Global (GConstructor _)) ->
-          VConstructor (name, [])
-      | Some (`Global (GExternIO ext)) ->
-          VExternIO (ext, [])
-      | _ -> VNeutral (NVar name))
+      match name with
+      | "add" | "sub" | "mul" | "div" | "lt" | "gt" | "eq" -> VBuiltin (name, [])
+      | _ -> (
+          match lookup ctx name with
+          | Some (`Global (GDefinition def)) when def.def_role <> ProofOnly ->
+              eval ctx env def.def_body
+          | Some (`Global (GConstructor _)) ->
+              VConstructor (name, [])
+          | Some (`Global (GExternIO ext)) ->
+              VExternIO (ext, [])
+          | _ -> VNeutral (NVar name)))
 
 (** Apply a value to arguments. *)
 and apply_all (ctx : context) (f : value) (args : value list) : value =
@@ -136,10 +143,103 @@ and apply (ctx : context) (f : value) (arg : value) : value =
             | "cj_random_u64" -> (
                 VLiteral (LitInt64 (Int64.of_int (Random.int 1000000))) (* Mock implementation *)
               )
+            | "getenv" -> (
+                match args with
+                | [VLiteral (LitString s)] -> (
+                    try VLiteral (LitString (Sys.getenv s))
+                    with Not_found -> VLiteral (LitString "")
+                  )
+                | _ -> VConstructor ("tt", [])
+              )
+            | "system" -> (
+                match args with
+                | [VLiteral (LitString s)] -> VLiteral (LitInt32 (Int32.of_int (Sys.command s)))
+                | _ -> VConstructor ("tt", [])
+              )
+            | "exit" -> (
+                match args with
+                | [VLiteral (LitInt32 i)] -> exit (Int32.to_int i)
+                | _ -> VConstructor ("tt", [])
+              )
+            | "time" -> (
+                 VLiteral (LitInt64 (Int64.of_float (Unix.time ())))
+              )
+            | "clock" -> (
+                 VLiteral (LitInt64 (Int64.of_float (Sys.time () *. 1000000.0)))
+              )
+            | "malloc" -> (
+                 VLiteral (LitInt64 12345L) (* Dummy pointer *)
+              )
+            | "free" -> (
+                 VConstructor ("tt", [])
+              )
+            | "uintptr_to_ptr" -> (
+                match args with
+                | [VLiteral (LitInt64 i)] -> VLiteral (LitInt64 i)
+                | _ -> VConstructor ("tt", [])
+              )
+            | "ptr_to_uintptr" -> (
+                match args with
+                | [VLiteral (LitInt64 i)] -> VLiteral (LitInt64 i)
+                | _ -> VConstructor ("tt", [])
+              )
+            | "sleep" -> (
+                match args with
+                | [VLiteral (LitInt64 s)] -> 
+                    Unix.sleep (Int64.to_int s);
+                    VLiteral (LitInt64 0L)
+                | _ -> VConstructor ("tt", [])
+              )
+            | "usleep" -> (
+                match args with
+                | [VLiteral (LitInt64 us)] -> 
+                    let seconds = (Int64.to_float us) /. 1000000.0 in
+                    Unix.sleepf seconds;
+                    VLiteral (LitInt32 0l)
+                | _ -> VConstructor ("tt", [])
+              )
+            | "getcwd" -> (
+                VLiteral (LitString (Sys.getcwd ()))
+              )
+            | "chdir" -> (
+                match args with
+                | [VLiteral (LitString s)] -> 
+                    Sys.chdir s;
+                    VLiteral (LitInt32 0l)
+                | _ -> VConstructor ("tt", [])
+              )
+            | "unlink" -> (
+                match args with
+                | [VLiteral (LitString s)] -> 
+                    Sys.remove s;
+                    VLiteral (LitInt32 0l)
+                | _ -> VConstructor ("tt", [])
+              )
+            | "rename" -> (
+                match args with
+                | [VLiteral (LitString old); VLiteral (LitString new_)] -> 
+                    Sys.rename old new_;
+                    VLiteral (LitInt32 0l)
+                | _ -> VConstructor ("tt", [])
+              )
             | _ -> Printf.printf "[IO] %s (c_name: %s)\n" ext.extern_io_name ext.c_name; VConstructor ("tt", [])
             in
             VConstructor ("pair", [result; VWorld])
         | _ -> VNeutral (NApp (NVar "_stuck_io_", [f; arg])))
+  | VBuiltin (op, args) ->
+      let args' = args @ [arg] in
+      if List.length args' = 2 then
+        match op, args' with
+        | "add", [VLiteral (LitInt32 a); VLiteral (LitInt32 b)] -> VLiteral (LitInt32 (Int32.add a b))
+        | "sub", [VLiteral (LitInt32 a); VLiteral (LitInt32 b)] -> VLiteral (LitInt32 (Int32.sub a b))
+        | "mul", [VLiteral (LitInt32 a); VLiteral (LitInt32 b)] -> VLiteral (LitInt32 (Int32.mul a b))
+        | "div", [VLiteral (LitInt32 a); VLiteral (LitInt32 b)] -> VLiteral (LitInt32 (Int32.div a b))
+        | "lt", [VLiteral (LitInt32 a); VLiteral (LitInt32 b)] -> VLiteral (LitBool (a < b))
+        | "gt", [VLiteral (LitInt32 a); VLiteral (LitInt32 b)] -> VLiteral (LitBool (a > b))
+        | "eq", [VLiteral (LitInt32 a); VLiteral (LitInt32 b)] -> VLiteral (LitBool (a = b))
+        | _ -> VNeutral (NApp (NVar ("_stuck_builtin_" ^ op), args'))
+      else
+        VBuiltin (op, args')
   | VNeutral n ->
       VNeutral (NApp (n, [arg]))
   | _ -> VNeutral (NApp (NVar "_stuck_", [f; arg]))
@@ -182,6 +282,9 @@ let rec quote (v : value) : term =
   | VExternIO (ext, args) ->
       let head = mk (Global ext.extern_io_name) in
       mk (App (head, List.map quote args))
+  | VBuiltin (op, args) ->
+      let head = mk (Global op) in
+      mk (App (head, List.map quote args))
   | VNeutral n -> quote_neutral n
 
 and quote_neutral (n : neutral) : term =
@@ -221,4 +324,8 @@ let rec value_eq (v1 : value) (v2 : value) : bool =
       List.for_all2 value_eq args1 args2
   | VUniverse u1, VUniverse u2 -> equal_universe u1 u2
   | VPrimType p1, VPrimType p2 -> equal_prim_type p1 p2
+  | VBuiltin (op1, args1), VBuiltin (op2, args2) ->
+      String.equal op1 op2 &&
+      List.length args1 = List.length args2 &&
+      List.for_all2 value_eq args1 args2
   | _ -> false

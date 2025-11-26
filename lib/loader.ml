@@ -29,6 +29,16 @@ let resolve_import (name : name) : string option =
     | "Std.IO" -> "std_io.json"
     | "Std.Math" -> "std_math.json"
     | "Std.Memory" -> "std_memory.json"
+    | "Std.CStdIO" -> "std_stdio.json"
+    | "Std.CTime" -> "std_time.json"
+    | "Std.CCtype" -> "std_ctype.json"
+    | "Std.CEnv" -> "std_env.json"
+    | "Std.CLocale" -> "std_locale.json"
+    | "Std.POSIX" -> "std_posix.json"
+    | "Std.POSIXSockets" -> "std_posix_sockets.json"
+    | "Std.CMath" -> "std_cmath.json"
+    | "Std.CErrno" -> "std_errno.json"
+    | "Std.CAssert" -> "std_assert.json"
     | _ -> name ^ ".json" 
   in
   let paths = ["."; "stdlib"] in

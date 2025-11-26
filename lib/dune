@@ -1,6 +1,6 @@
 (library
  (name certijson)
  (public_name certijson)
- (libraries jsonm fmt logs)
+ (libraries jsonm fmt logs unix)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq)))

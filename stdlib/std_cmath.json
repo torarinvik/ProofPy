@@ -1,0 +1,898 @@
+{
+  "module": "Std.CMath",
+  "imports": ["Std.Memory"],
+  "declarations": [
+    {
+      "extern_c": {
+        "name": "sin",
+        "c_name": "sin",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "cos",
+        "c_name": "cos",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "tan",
+        "c_name": "tan",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "asin",
+        "c_name": "asin",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "acos",
+        "c_name": "acos",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "atan",
+        "c_name": "atan",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "atan2",
+        "c_name": "atan2",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "y", "repr": "Double" },
+            { "name": "x", "repr": "Double" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "y", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "x", "type": { "prim": "Float64" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "sinh",
+        "c_name": "sinh",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "cosh",
+        "c_name": "cosh",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "tanh",
+        "c_name": "tanh",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "exp",
+        "c_name": "exp",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "exp2",
+        "c_name": "exp2",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "log",
+        "c_name": "log",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "log10",
+        "c_name": "log10",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "pow",
+        "c_name": "pow",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "y", "repr": "Double" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "y", "type": { "prim": "Float64" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "sqrt",
+        "c_name": "sqrt",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "cbrt",
+        "c_name": "cbrt",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "fabs",
+        "c_name": "fabs",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "floor",
+        "c_name": "floor",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "ceil",
+        "c_name": "ceil",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "round",
+        "c_name": "round",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "trunc",
+        "c_name": "trunc",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "fmod",
+        "c_name": "fmod",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "y", "repr": "Double" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "y", "type": { "prim": "Float64" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "hypot",
+        "c_name": "hypot",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "y", "repr": "Double" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "y", "type": { "prim": "Float64" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "fma",
+        "c_name": "fma",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "y", "repr": "Double" },
+            { "name": "z", "repr": "Double" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "y", "type": { "prim": "Float64" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "z", "type": { "prim": "Float64" } },
+                    "result": { "prim": "Float64" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "modf",
+        "c_name": "modf",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "iptr", "repr": "VoidPtr" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "iptr", "type": { "var": "VoidPtr" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "frexp",
+        "c_name": "frexp",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "exp", "repr": "VoidPtr" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "exp", "type": { "var": "VoidPtr" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "ldexp",
+        "c_name": "ldexp",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "exp", "repr": "Int" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "exp", "type": { "prim": "Int32" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "log1p",
+        "c_name": "log1p",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "expm1",
+        "c_name": "expm1",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "remainder",
+        "c_name": "remainder",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "y", "repr": "Double" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "y", "type": { "prim": "Float64" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "copysign",
+        "c_name": "copysign",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "y", "repr": "Double" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "y", "type": { "prim": "Float64" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "nextafter",
+        "c_name": "nextafter",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "x", "repr": "Double" },
+            { "name": "y", "repr": "Double" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "y", "type": { "prim": "Float64" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "erf",
+        "c_name": "erf",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "erfc",
+        "c_name": "erfc",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "tgamma",
+        "c_name": "tgamma",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "lgamma",
+        "c_name": "lgamma",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Float64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isfinite",
+        "c_name": "isfinite",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isinf",
+        "c_name": "isinf",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "isnan",
+        "c_name": "isnan",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "lrint",
+        "c_name": "lrint",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Long" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Int64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "llrint",
+        "c_name": "llrint",
+        "header": "<math.h>",
+        "signature": {
+          "return": { "repr": "Long" },
+          "args": [{ "name": "x", "repr": "Double" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "x", "type": { "prim": "Float64" } },
+            "result": { "prim": "Int64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    }
+  ]
+}

@@ -67,6 +67,54 @@
     },
     {
       "repr": {
+        "name": "Long",
+        "kind": "primitive",
+        "c_type": "long",
+        "size_bits": 64,
+        "signed": true
+      }
+    },
+    {
+      "repr": {
+        "name": "DivT",
+        "kind": "struct",
+        "c_struct_name": "div_t",
+        "size_bytes": 16,
+        "align_bytes": 8,
+        "fields": [
+          { "name": "quot", "repr": "Int", "offset_bytes": 0 },
+          { "name": "rem", "repr": "Int", "offset_bytes": 8 }
+        ]
+      }
+    },
+    {
+      "repr": {
+        "name": "LDivT",
+        "kind": "struct",
+        "c_struct_name": "ldiv_t",
+        "size_bytes": 16,
+        "align_bytes": 8,
+        "fields": [
+          { "name": "quot", "repr": "Long", "offset_bytes": 0 },
+          { "name": "rem", "repr": "Long", "offset_bytes": 8 }
+        ]
+      }
+    },
+    {
+      "repr": {
+        "name": "LLDivT",
+        "kind": "struct",
+        "c_struct_name": "lldiv_t",
+        "size_bytes": 16,
+        "align_bytes": 8,
+        "fields": [
+          { "name": "quot", "repr": "Long", "offset_bytes": 0 },
+          { "name": "rem", "repr": "Long", "offset_bytes": 8 }
+        ]
+      }
+    },
+    {
+      "repr": {
         "name": "UIntPtr",
         "kind": "primitive",
         "c_type": "uintptr_t",
@@ -824,6 +872,523 @@
         },
         "safety": "pure",
         "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "strtol",
+        "c_name": "strtol",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "Long" },
+          "args": [
+            { "name": "nptr", "repr": "ConstCharPtr" },
+            { "name": "endptr", "repr": "VoidPtr" },
+            { "name": "base", "repr": "Int" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "nptr", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "endptr", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "base", "type": { "prim": "Int32" } },
+                    "result": { "prim": "Int64" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "strtoll",
+        "c_name": "strtoll",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "Long" },
+          "args": [
+            { "name": "nptr", "repr": "ConstCharPtr" },
+            { "name": "endptr", "repr": "VoidPtr" },
+            { "name": "base", "repr": "Int" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "nptr", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "endptr", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "base", "type": { "prim": "Int32" } },
+                    "result": { "prim": "Int64" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "strtoul",
+        "c_name": "strtoul",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "SizeT" },
+          "args": [
+            { "name": "nptr", "repr": "ConstCharPtr" },
+            { "name": "endptr", "repr": "VoidPtr" },
+            { "name": "base", "repr": "Int" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "nptr", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "endptr", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "base", "type": { "prim": "Int32" } },
+                    "result": { "prim": "Int64" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "strtoull",
+        "c_name": "strtoull",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "SizeT" },
+          "args": [
+            { "name": "nptr", "repr": "ConstCharPtr" },
+            { "name": "endptr", "repr": "VoidPtr" },
+            { "name": "base", "repr": "Int" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "nptr", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "endptr", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "base", "type": { "prim": "Int32" } },
+                    "result": { "prim": "Int64" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "strtod",
+        "c_name": "strtod",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "nptr", "repr": "ConstCharPtr" },
+            { "name": "endptr", "repr": "VoidPtr" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "nptr", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "endptr", "type": { "var": "VoidPtr" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "strtof",
+        "c_name": "strtof",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "nptr", "repr": "ConstCharPtr" },
+            { "name": "endptr", "repr": "VoidPtr" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "nptr", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "endptr", "type": { "var": "VoidPtr" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "strtold",
+        "c_name": "strtold",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "nptr", "repr": "ConstCharPtr" },
+            { "name": "endptr", "repr": "VoidPtr" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "nptr", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "endptr", "type": { "var": "VoidPtr" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "abs",
+        "c_name": "abs",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [{ "name": "j", "repr": "Int" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "j", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "labs",
+        "c_name": "labs",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "Long" },
+          "args": [{ "name": "j", "repr": "Long" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "j", "type": { "prim": "Int64" } },
+            "result": { "prim": "Int64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "llabs",
+        "c_name": "llabs",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "Long" },
+          "args": [{ "name": "j", "repr": "Long" }]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "j", "type": { "prim": "Int64" } },
+            "result": { "prim": "Int64" }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "div",
+        "c_name": "div",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "DivT" },
+          "args": [
+            { "name": "numer", "repr": "Int" },
+            { "name": "denom", "repr": "Int" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "numer", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "denom", "type": { "prim": "Int32" } },
+                "result": { "var": "DivT" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "ldiv",
+        "c_name": "ldiv",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "LDivT" },
+          "args": [
+            { "name": "numer", "repr": "Long" },
+            { "name": "denom", "repr": "Long" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "numer", "type": { "prim": "Int64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "denom", "type": { "prim": "Int64" } },
+                "result": { "var": "LDivT" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_c": {
+        "name": "lldiv",
+        "c_name": "lldiv",
+        "header": "<stdlib.h>",
+        "signature": {
+          "return": { "repr": "LLDivT" },
+          "args": [
+            { "name": "numer", "repr": "Long" },
+            { "name": "denom", "repr": "Long" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "numer", "type": { "prim": "Int64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "denom", "type": { "prim": "Int64" } },
+                "result": { "var": "LLDivT" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_io": {
+        "name": "qsort",
+        "c_name": "qsort",
+        "header": "<stdlib.h>",
+        "args": [
+          { "name": "base", "repr": "VoidPtr" },
+          { "name": "nmemb", "repr": "SizeT" },
+          { "name": "size", "repr": "SizeT" },
+          { "name": "compar", "repr": "VoidPtr" }
+        ],
+        "result": null,
+        "type": {
+          "pi": {
+            "arg": { "name": "base", "type": { "var": "VoidPtr" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "nmemb", "type": { "prim": "Int64" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "size", "type": { "prim": "Int64" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "compar", "type": { "var": "VoidPtr" } },
+                        "result": { "app": [{ "var": "IO" }, { "var": "Unit" }] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "bsearch",
+        "c_name": "bsearch",
+        "header": "<stdlib.h>",
+        "args": [
+          { "name": "key", "repr": "ConstVoidPtr" },
+          { "name": "base", "repr": "ConstVoidPtr" },
+          { "name": "nmemb", "repr": "SizeT" },
+          { "name": "size", "repr": "SizeT" },
+          { "name": "compar", "repr": "VoidPtr" }
+        ],
+        "result": { "repr": "VoidPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "key", "type": { "var": "VoidPtr" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "base", "type": { "var": "VoidPtr" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "nmemb", "type": { "prim": "Int64" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "size", "type": { "prim": "Int64" } },
+                        "result": {
+                          "pi": {
+                            "arg": { "name": "compar", "type": { "var": "VoidPtr" } },
+                            "result": { "app": [{ "var": "IO" }, { "var": "VoidPtr" }] }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "abort",
+        "c_name": "abort",
+        "header": "<stdlib.h>",
+        "args": [],
+        "result": null,
+        "type": { "app": [{ "var": "IO" }, { "var": "Unit" }] }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "aligned_alloc",
+        "c_name": "aligned_alloc",
+        "header": "<stdlib.h>",
+        "args": [
+          { "name": "alignment", "repr": "SizeT" },
+          { "name": "size", "repr": "SizeT" }
+        ],
+        "result": { "repr": "VoidPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "alignment", "type": { "prim": "Int64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "size", "type": { "prim": "Int64" } },
+                "result": { "app": [{ "var": "IO" }, { "var": "VoidPtr" }] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "atexit",
+        "c_name": "cj_atexit",
+        "header": "<certijson_atexit.h>",
+        "args": [
+          { "name": "cb", "repr": "VoidPtr" }
+        ],
+        "result": { "repr": "Int" },
+        "type": {
+          "pi": {
+            "arg": { "name": "cb", "type": { "var": "VoidPtr" } },
+            "result": { "app": [{ "var": "IO" }, { "prim": "Int32" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "strdup",
+        "c_name": "strdup",
+        "header": "<string.h>",
+        "args": [
+          { "name": "s", "repr": "ConstCharPtr" }
+        ],
+        "result": { "repr": "CharPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "s", "type": { "prim": "String" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "VoidPtr" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "strndup",
+        "c_name": "strndup",
+        "header": "<string.h>",
+        "args": [
+          { "name": "s", "repr": "ConstCharPtr" },
+          { "name": "n", "repr": "SizeT" }
+        ],
+        "result": { "repr": "CharPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "s", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "n", "type": { "prim": "Int64" } },
+                "result": { "app": [{ "var": "IO" }, { "var": "VoidPtr" }] }
+              }
+            }
+          }
+        }
       }
     },
     {

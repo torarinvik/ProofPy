@@ -1,0 +1,234 @@
+{
+  "module": "Std.CTime",
+  "imports": ["Std.IO", "Std.Memory"],
+  "declarations": [
+    {
+      "repr": {
+        "name": "TimeT",
+        "kind": "primitive",
+        "c_type": "time_t",
+        "size_bits": 64,
+        "signed": true
+      }
+    },
+    {
+      "repr": {
+        "name": "ClockT",
+        "kind": "primitive",
+        "c_type": "clock_t",
+        "size_bits": 64,
+        "signed": true
+      }
+    },
+    {
+      "repr": {
+        "name": "TimeTPtr",
+        "kind": "primitive",
+        "c_type": "time_t*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "ConstTimeTPtr",
+        "kind": "primitive",
+        "c_type": "const time_t*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "TmPtr",
+        "kind": "primitive",
+        "c_type": "struct tm*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "repr": {
+        "name": "ConstTmPtr",
+        "kind": "primitive",
+        "c_type": "const struct tm*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "extern_io": {
+        "name": "time",
+        "c_name": "time",
+        "header": "<time.h>",
+        "args": [
+          { "name": "t", "repr": "TimeTPtr" }
+        ],
+        "result": { "repr": "TimeT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "t", "type": { "var": "VoidPtr" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "TimeT" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "clock",
+        "c_name": "clock",
+        "header": "<time.h>",
+        "args": [],
+        "result": { "repr": "ClockT" },
+        "type": { "app": [{ "var": "IO" }, { "var": "ClockT" }] }
+      }
+    },
+    {
+      "extern_c": {
+        "name": "difftime",
+        "c_name": "difftime",
+        "header": "<time.h>",
+        "signature": {
+          "return": { "repr": "Double" },
+          "args": [
+            { "name": "time1", "repr": "TimeT" },
+            { "name": "time0", "repr": "TimeT" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "time1", "type": { "var": "TimeT" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "time0", "type": { "var": "TimeT" } },
+                "result": { "prim": "Float64" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_io": {
+        "name": "mktime",
+        "c_name": "mktime",
+        "header": "<time.h>",
+        "args": [
+          { "name": "tm", "repr": "TmPtr" }
+        ],
+        "result": { "repr": "TimeT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "tm", "type": { "var": "VoidPtr" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "TimeT" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "localtime",
+        "c_name": "localtime",
+        "header": "<time.h>",
+        "args": [
+          { "name": "timer", "repr": "ConstTimeTPtr" }
+        ],
+        "result": { "repr": "TmPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "timer", "type": { "var": "VoidPtr" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "TmPtr" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "gmtime",
+        "c_name": "gmtime",
+        "header": "<time.h>",
+        "args": [
+          { "name": "timer", "repr": "ConstTimeTPtr" }
+        ],
+        "result": { "repr": "TmPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "timer", "type": { "var": "VoidPtr" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "TmPtr" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "asctime",
+        "c_name": "asctime",
+        "header": "<time.h>",
+        "args": [
+          { "name": "tm", "repr": "ConstTmPtr" }
+        ],
+        "result": { "repr": "CharPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "tm", "type": { "var": "VoidPtr" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "VoidPtr" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "ctime",
+        "c_name": "ctime",
+        "header": "<time.h>",
+        "args": [
+          { "name": "timer", "repr": "ConstTimeTPtr" }
+        ],
+        "result": { "repr": "CharPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "timer", "type": { "var": "VoidPtr" } },
+            "result": { "app": [{ "var": "IO" }, { "var": "VoidPtr" }] }
+          }
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "strftime",
+        "c_name": "strftime",
+        "header": "<time.h>",
+        "args": [
+          { "name": "s", "repr": "VoidPtr" },
+          { "name": "max", "repr": "SizeT" },
+          { "name": "format", "repr": "ConstCharPtr" },
+          { "name": "tm", "repr": "ConstTmPtr" }
+        ],
+        "result": { "repr": "SizeT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "s", "type": { "var": "VoidPtr" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "max", "type": { "prim": "Int64" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "format", "type": { "prim": "String" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "tm", "type": { "var": "VoidPtr" } },
+                        "result": { "app": [{ "var": "IO" }, { "prim": "Int64" }] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

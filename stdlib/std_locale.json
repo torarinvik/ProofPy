@@ -1,0 +1,85 @@
+{
+  "module": "Std.CLocale",
+  "imports": ["Std.IO", "Std.Memory"],
+  "declarations": [
+    {
+      "extern_io": {
+        "name": "setlocale",
+        "c_name": "setlocale",
+        "header": "<locale.h>",
+        "args": [
+          { "name": "category", "repr": "Int" },
+          { "name": "locale", "repr": "ConstCharPtr" }
+        ],
+        "result": { "repr": "CharPtr" },
+        "type": {
+          "pi": {
+            "arg": { "name": "category", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "locale", "type": { "prim": "String" } },
+                "result": { "app": [{ "var": "IO" }, { "var": "VoidPtr" }] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "extern_c": {
+        "name": "strcoll",
+        "c_name": "strcoll",
+        "header": "<string.h>",
+        "signature": {
+          "return": { "repr": "Int" },
+          "args": [
+            { "name": "s1", "repr": "ConstCharPtr" },
+            { "name": "s2", "repr": "ConstCharPtr" }
+          ]
+        },
+        "type": {
+          "pi": {
+            "arg": { "name": "s1", "type": { "prim": "String" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "s2", "type": { "prim": "String" } },
+                "result": { "prim": "Int32" }
+              }
+            }
+          }
+        },
+        "safety": "pure",
+        "axioms": []
+      }
+    },
+    {
+      "extern_io": {
+        "name": "strxfrm",
+        "c_name": "strxfrm",
+        "header": "<string.h>",
+        "args": [
+          { "name": "dest", "repr": "CharPtr" },
+          { "name": "src", "repr": "ConstCharPtr" },
+          { "name": "n", "repr": "SizeT" }
+        ],
+        "result": { "repr": "SizeT" },
+        "type": {
+          "pi": {
+            "arg": { "name": "dest", "type": { "var": "VoidPtr" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "src", "type": { "prim": "String" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "n", "type": { "prim": "Int64" } },
+                    "result": { "app": [{ "var": "IO" }, { "prim": "Int64" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
