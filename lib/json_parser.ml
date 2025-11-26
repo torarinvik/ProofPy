@@ -148,6 +148,13 @@ let has_field (json : json) (field : string) : bool =
   | JObject fields -> List.mem_assoc field fields
   | _ -> false
 
+let parse_role (s : string) : role =
+  match s with
+  | "runtime" -> Runtime
+  | "proof-only" | "proof_only" -> ProofOnly
+  | "both" -> Both
+  | _ -> raise (ParseError (InvalidValue ("role", s)))
+
 (** {1 Term Parsing} *)
 
 let rec parse_term ~(file : string option) (json : json) : term =
@@ -188,6 +195,9 @@ let rec parse_term ~(file : string option) (json : json) : term =
         {
           name = get_string (get_field arg_json "name");
           ty = parse_term ~file (get_field arg_json "type");
+          role = (match get_field_opt arg_json "role" with
+                  | Some j -> (match j.value with JString s -> parse_role s | _ -> Runtime)
+                  | None -> Runtime);
           b_loc = loc;
         }
       in
@@ -200,6 +210,9 @@ let rec parse_term ~(file : string option) (json : json) : term =
         {
           name = get_string (get_field arg_json "name");
           ty = parse_term ~file (get_field arg_json "type");
+          role = (match get_field_opt arg_json "role" with
+                  | Some j -> (match j.value with JString s -> parse_role s | _ -> Runtime)
+                  | None -> Runtime);
           b_loc = loc;
         }
       in
@@ -212,11 +225,46 @@ let rec parse_term ~(file : string option) (json : json) : term =
         {
           name = get_string (get_field arg_json "name");
           ty = parse_term ~file (get_field arg_json "type");
+          role = (match get_field_opt arg_json "role" with
+                  | Some j -> (match j.value with JString s -> parse_role s | _ -> Runtime)
+                  | None -> Runtime);
           b_loc = loc;
         }
       in
       let body = parse_term ~file (get_field lam "body") in
       { desc = Lambda { arg; body }; loc }
+  | _ when has_field json "subset" ->
+      let sub = get_field json "subset" in
+      let arg_json = get_field sub "arg" in
+      let arg =
+        {
+          name = get_string (get_field arg_json "name");
+          ty = parse_term ~file (get_field arg_json "type");
+          role = Runtime;
+          b_loc = loc;
+        }
+      in
+      let pred = parse_term ~file (get_field sub "pred") in
+      { desc = Subset { arg; pred }; loc }
+  | _ when has_field json "subset_intro" ->
+      let intro = get_field json "subset_intro" in
+      {
+        desc =
+          SubsetIntro
+            {
+              value = parse_term ~file (get_field intro "value");
+              proof = parse_term ~file (get_field intro "proof");
+            };
+        loc;
+      }
+  | _ when has_field json "subset_elim" ->
+      let elim = get_field json "subset_elim" in
+      let value = parse_term ~file (get_field elim "value") in
+      { desc = SubsetElim value; loc }
+  | _ when has_field json "subset_proof" ->
+      let proof = get_field json "subset_proof" in
+      let value = parse_term ~file (get_field proof "value") in
+      { desc = SubsetProof value; loc }
   | _ when has_field json "app" ->
       let apps = get_list (get_field json "app") in
       (match apps with
@@ -327,17 +375,13 @@ let parse_binder ~(file : string option) (json : json) : binder =
   {
     name = get_string (get_field json "name");
     ty = parse_term ~file (get_field json "type");
+    role = (match get_field_opt json "role" with
+            | Some j -> (match j.value with JString s -> parse_role s | _ -> Runtime)
+            | None -> Runtime);
     b_loc = Some (Loc.loc_of_range ?file json.loc);
   }
 
 (** {1 Declaration Parsing} *)
-
-let parse_role (s : string) : role =
-  match s with
-  | "runtime" -> Runtime
-  | "proof-only" | "proof_only" -> ProofOnly
-  | "both" -> Both
-  | _ -> raise (ParseError (InvalidValue ("role", s)))
 
 let parse_inductive ~(file : string option) (json : json) : inductive_decl =
   let name = get_string (get_field json "name") in

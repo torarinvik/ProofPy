@@ -1,0 +1,38 @@
+{
+  "module": "RefinementTypes",
+  "imports": [],
+  "declarations": [
+    {
+      "def": {
+        "name": "Nat",
+        "role": "both",
+        "type": { "universe": "Type" },
+        "body": { "subset": { "arg": { "name": "n", "type": { "prim": "Int32" } }, "pred": { "eq": { "type": { "prim": "Bool" }, "lhs": { "bool": true }, "rhs": { "bool": true } } } } }
+      }
+    },
+    {
+      "def": {
+        "name": "five_nat",
+        "role": "both",
+        "type": { "var": "Nat" },
+        "body": { "subset_intro": { "value": { "int32": 5 }, "proof": { "refl": { "eq": { "type": { "prim": "Bool" }, "lhs": { "bool": true } } } } } }
+      }
+    },
+    {
+      "def": {
+        "name": "get_val",
+        "role": "both",
+        "type": { "pi": { "arg": { "name": "n", "type": { "var": "Nat" } }, "result": { "prim": "Int32" } } },
+        "body": { "lambda": { "arg": { "name": "n", "type": { "var": "Nat" } }, "body": { "subset_elim": { "value": { "var": "n" } } } } }
+      }
+    },
+    {
+      "def": {
+        "name": "ghost_fn",
+        "role": "both",
+        "type": { "pi": { "arg": { "name": "x", "type": { "prim": "Int32" }, "role": "proof-only" }, "result": { "prim": "Int32" } } },
+        "body": { "lambda": { "arg": { "name": "x", "type": { "prim": "Int32" }, "role": "proof-only" }, "body": { "int32": 42 } } }
+      }
+    }
+  ]
+}

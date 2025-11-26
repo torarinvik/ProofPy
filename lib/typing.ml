@@ -52,6 +52,10 @@ let rec infer_universe (ctx : context) (t : term) : universe option =
       let _ = infer_universe ctx arg.ty in
       let ctx' = extend ctx arg.name arg.ty in
       infer_universe ctx' result
+  | Subset { arg; pred = _ } ->
+      let _ = infer_universe ctx arg.ty in
+      (* Predicate must be Prop, but Subset lives in same universe as arg *)
+      infer_universe ctx arg.ty
   | _ -> None
 
 (** {1 Definitional Equality} *)
@@ -74,6 +78,16 @@ let rec whnf (ctx : context) (t : term) : term =
       | Some (`Global (GDefinition def)) when def.def_role <> ProofOnly ->
           whnf ctx def.def_body
       | _ -> t)
+  | SubsetElim tm -> (
+      let tm' = whnf ctx tm in
+      match tm'.desc with
+      | SubsetIntro { value; _ } -> whnf ctx value
+      | _ -> mk ?loc:t.loc (SubsetElim tm'))
+  | SubsetProof tm -> (
+      let tm' = whnf ctx tm in
+      match tm'.desc with
+      | SubsetIntro { proof; _ } -> whnf ctx proof
+      | _ -> mk ?loc:t.loc (SubsetProof tm'))
   | Match { scrutinee; motive; as_name; cases; coverage_hint } -> (
       let scrut' = whnf ctx scrutinee in
       let reconstruct () =
@@ -165,6 +179,14 @@ let rec equal_ignoring_loc (t1 : term) (t2 : term) : bool =
         List.for_all2 (fun a1 a2 -> String.equal a1.arg_name a2.arg_name) c1.pattern.args c2.pattern.args &&
         equal_ignoring_loc c1.body c2.body
       ) m1.cases m2.cases
+  | Subset { arg = a1; pred = p1 }, Subset { arg = a2; pred = p2 } ->
+      String.equal a1.name a2.name &&
+      equal_ignoring_loc a1.ty a2.ty &&
+      equal_ignoring_loc p1 p2
+  | SubsetIntro { value = v1; proof = p1 }, SubsetIntro { value = v2; proof = p2 } ->
+      equal_ignoring_loc v1 v2 && equal_ignoring_loc p1 p2
+  | SubsetElim t1, SubsetElim t2 -> equal_ignoring_loc t1 t2
+  | SubsetProof t1, SubsetProof t2 -> equal_ignoring_loc t1 t2
   | _ -> false
 
 (** Check definitional equality of two terms. *)
@@ -231,6 +253,14 @@ and conv_whnf (ctx : context) (t1 : term) (t2 : term) : bool =
         in
         conv ctx' case1.body body2
       ) c1 c2
+  | Subset { arg = a1; pred = p1 }, Subset { arg = a2; pred = p2 } ->
+      conv ctx a1.ty a2.ty &&
+      let ctx' = extend ctx a1.name a1.ty in
+      conv ctx' p1 (subst a2.name (mk ?loc:a1.b_loc (Var a1.name)) p2)
+  | SubsetIntro { value = v1; proof = p1 }, SubsetIntro { value = v2; proof = p2 } ->
+      conv ctx v1 v2 && conv ctx p1 p2
+  | SubsetElim t1, SubsetElim t2 -> conv ctx t1 t2
+  | SubsetProof t1, SubsetProof t2 -> conv ctx t1 t2
   | _ -> false
 
 (** Substitute a list of (name, term) pairs into a term. *)
@@ -284,6 +314,19 @@ let rec subst_term (old_t : term) (new_t : term) (t : term) : term =
           ) cases
         in
         mk ?loc:t.loc (Match { scrutinee; motive; as_name; cases; coverage_hint })
+  | Subset { arg; pred } ->
+      let arg_ty = subst_term old_t new_t arg.ty in
+      let pred =
+        if is_shadowed arg.name then pred
+        else subst_term old_t new_t pred
+      in
+      mk ?loc:t.loc (Subset { arg = { arg with ty = arg_ty }; pred })
+  | SubsetIntro { value; proof } ->
+      mk ?loc:t.loc (SubsetIntro { value = subst_term old_t new_t value; proof = subst_term old_t new_t proof })
+  | SubsetElim tm ->
+      mk ?loc:t.loc (SubsetElim (subst_term old_t new_t tm))
+  | SubsetProof tm ->
+      mk ?loc:t.loc (SubsetProof (subst_term old_t new_t tm))
 
 (** Collect leading Π binders from a type. *)
 let rec collect_pi_binders (t : term) : binder list * term =
@@ -378,6 +421,12 @@ let rec positive_occurrences (target : name) (positive : bool) (t : term) : bool
       && List.for_all (fun c -> go positive c.body) cases
   | If { cond; then_; else_ } ->
       go positive cond && go positive then_ && go positive else_
+  | Subset { arg; pred } ->
+      go positive arg.ty && go positive pred
+  | SubsetIntro { value; proof } ->
+      go positive value && go positive proof
+  | SubsetElim tm -> go positive tm
+  | SubsetProof tm -> go positive tm
 
 (** {1 Type Inference} *)
 
@@ -576,10 +625,48 @@ let rec infer (ctx : context) (t : term) : term =
           | GExternIO ext -> ext.logical_type
           | GRepr _ -> raise (TypeError (TypeMismatch { expected = mk ?loc:t.loc (Universe Type); actual = t; context = "repr"; loc = t.loc })))
       | _ -> raise (TypeError (UnboundVariable name)))
+  | Subset { arg; pred } ->
+      let arg_kind = infer ctx arg.ty in
+      (match arg_kind.desc with
+      | Universe _ -> ()
+      | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
+      let ctx' = extend ctx arg.name arg.ty in
+      let pred_ty = infer ctx' pred in
+      (match pred_ty.desc with
+      | Universe Prop -> ()
+      | _ -> raise (TypeError (NotAProp (pred, pred.loc))));
+      mk ?loc:t.loc (Universe Type)
+  | SubsetIntro { value = _; proof = _ } ->
+      raise (TypeError (TypeMismatch { expected = mk (Var "Subset type"); actual = t; context = "inference"; loc = t.loc }))
+  | SubsetElim tm ->
+      let tm_ty = infer ctx tm in
+      let tm_ty' = whnf ctx tm_ty in
+      (match tm_ty'.desc with
+      | Subset { arg; _ } -> arg.ty
+      | _ -> raise (TypeError (TypeMismatch { expected = mk (Var "Subset type"); actual = tm_ty'; context = "subset elimination"; loc = tm.loc })))
+  | SubsetProof tm ->
+      let tm_ty = infer ctx tm in
+      let tm_ty' = whnf ctx tm_ty in
+      (match tm_ty'.desc with
+      | Subset { arg; pred } ->
+          let val_tm = mk ?loc:t.loc (SubsetElim tm) in
+          subst arg.name val_tm pred
+      | _ -> raise (TypeError (TypeMismatch { expected = mk (Var "Subset type"); actual = tm_ty'; context = "subset proof elimination"; loc = tm.loc })))
 
 (** Check that a term has a given type. *)
 and check (ctx : context) (t : term) (expected : term) : unit =
   match t.desc with
+  | SubsetIntro { value; proof } ->
+      let expected' = whnf ctx expected in
+      (match expected'.desc with
+      | Subset { arg; pred } ->
+          check ctx value arg.ty;
+          let pred_inst = subst arg.name value pred in
+          check ctx proof pred_inst
+      | _ ->
+          let actual = infer ctx t in
+          if not (conv ctx actual expected) then
+            raise (TypeError (TypeMismatch { expected; actual; context = "check"; loc = t.loc })))
   | Rewrite { proof; body } ->
       let proof_ty = infer ctx proof in
       let proof_ty' = whnf ctx proof_ty in
@@ -595,6 +682,8 @@ and check (ctx : context) (t : term) (expected : term) : unit =
       | Pi { arg = expected_arg; result = expected_result } ->
           if not (conv ctx arg.ty expected_arg.ty) then
              raise (TypeError (TypeMismatch { expected = expected_arg.ty; actual = arg.ty; context = "lambda argument type"; loc = arg.ty.loc }));
+          if arg.role <> expected_arg.role then
+             raise (TypeError (RoleMismatch (arg.name, expected_arg.role, arg.role)));
           let ctx' = extend ctx arg.name arg.ty in
           let expected_body_ty = subst expected_arg.name (mk (Var arg.name)) expected_result in
           check ctx' body expected_body_ty
@@ -629,6 +718,10 @@ let rec has_self_reference (self : name) (t : term) : bool =
       || List.exists (fun c -> has_self_reference self c.body) cases
   | If { cond; then_; else_ } ->
       has_self_reference self cond || has_self_reference self then_ || has_self_reference self else_
+  | Subset { arg; pred } -> has_self_reference self arg.ty || has_self_reference self pred
+  | SubsetIntro { value; proof } -> has_self_reference self value || has_self_reference self proof
+  | SubsetElim tm -> has_self_reference self tm
+  | SubsetProof tm -> has_self_reference self tm
 
 let check_termination (def : def_decl) : unit =
   let params, _ = collect_pi_binders def.def_type in
@@ -791,6 +884,14 @@ let check_termination (def : def_decl) : unit =
             check_term allowed cond;
             check_term allowed then_;
             check_term allowed else_
+        | Subset { arg; pred } ->
+            check_term allowed arg.ty;
+            check_term allowed pred
+        | SubsetIntro { value; proof } ->
+            check_term allowed value;
+            check_term allowed proof
+        | SubsetElim tm -> check_term allowed tm
+        | SubsetProof tm -> check_term allowed tm
       in
       check_term initial_allowed lam_body)
 

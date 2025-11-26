@@ -21,6 +21,7 @@ type value =
   | VWorld
   | VExternIO of extern_io_decl * value list
   | VBuiltin of string * value list
+  | VSubset of { arg : binder; pred : term; env : env }
 
 (** Neutral terms (stuck computations). *)
 and neutral =
@@ -91,6 +92,10 @@ let rec eval (ctx : context) (env : env) (t : term) : value =
   | Match { scrutinee; cases; _ } ->
       let scrut_val = eval ctx env scrutinee in
       eval_match ctx env scrut_val cases
+  | Subset { arg; pred } -> VSubset { arg; pred; env }
+  | SubsetIntro { value; proof = _ } -> eval ctx env value
+  | SubsetElim tm -> eval ctx env tm
+  | SubsetProof _ -> VConstructor ("tt", [])
   | If { cond; then_; else_ } ->
       let cond_val = eval ctx env cond in
       (match cond_val with
@@ -380,6 +385,7 @@ let rec quote (v : value) : term =
   | VBuiltin (op, args) ->
       let head = mk (Global op) in
       mk (App (head, List.map quote args))
+  | VSubset { arg; pred; env = _ } -> mk ?loc:arg.b_loc (Subset { arg; pred })
   | VNeutral n -> quote_neutral n
 
 and quote_neutral (n : neutral) : term =

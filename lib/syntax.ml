@@ -41,6 +41,14 @@ type literal =
   | LitString of string
 [@@deriving show, eq]
 
+(** {1 Roles} *)
+
+type role =
+  | Runtime     (** Kept at runtime *)
+  | ProofOnly   (** Erased at runtime *)
+  | Both        (** Available in both contexts *)
+[@@deriving show, eq]
+
 (** {1 Terms with locations} *)
 
 type term_desc =
@@ -63,6 +71,10 @@ type term_desc =
       coverage_hint : coverage_hint;
     }
   | Global of name
+  | Subset of { arg : binder; pred : term }
+  | SubsetIntro of { value : term; proof : term }
+  | SubsetElim of term
+  | SubsetProof of term
 
 and term = {
   desc : term_desc;
@@ -75,6 +87,7 @@ and term = {
 and binder = {
   name : name;
   ty : term;
+  role : role;
   b_loc : Loc.t option;
 }
 [@@deriving show, eq]
@@ -104,14 +117,6 @@ and case = {
 and coverage_hint =
   | Complete
   | Unknown
-[@@deriving show, eq]
-
-(** {1 Roles} *)
-
-type role =
-  | Runtime     (** Kept at runtime *)
-  | ProofOnly   (** Erased at runtime *)
-  | Both        (** Available in both contexts *)
 [@@deriving show, eq]
 
 (** {1 Representation Descriptors} *)
@@ -304,6 +309,18 @@ let rec subst (x : var) (s : term) (t : term) : term =
              cases = cases';
              coverage_hint;
            })
+  | Subset { arg; pred } ->
+      let arg' = { arg with ty = subst x s arg.ty } in
+      if String.equal x arg.name then
+        with_loc t (Subset { arg = arg'; pred })
+      else
+        with_loc t (Subset { arg = arg'; pred = subst x s pred })
+  | SubsetIntro { value; proof } ->
+      with_loc t (SubsetIntro { value = subst x s value; proof = subst x s proof })
+  | SubsetElim tm ->
+      with_loc t (SubsetElim (subst x s tm))
+  | SubsetProof tm ->
+      with_loc t (SubsetProof (subst x s tm))
 
 (** [free_vars t] returns the set of free variables in term [t]. *)
 let free_vars (t : term) : var list =
@@ -344,5 +361,14 @@ let free_vars (t : term) : var list =
             in
             S.union acc (S.diff (go S.empty c.body) bound))
           acc cases
+    | Subset { arg; pred } ->
+        let acc = go acc arg.ty in
+        S.remove arg.name (go acc pred)
+    | SubsetIntro { value; proof } ->
+        go (go acc value) proof
+    | SubsetElim tm ->
+        go acc tm
+    | SubsetProof tm ->
+        go acc tm
   in
   S.elements (go S.empty t)

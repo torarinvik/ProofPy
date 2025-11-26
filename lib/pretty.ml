@@ -56,6 +56,14 @@ let rec pp_term fmt (t : term) =
         pp_term scrutinee
         pp_term motive
         (Format.pp_print_list ~pp_sep:Format.pp_print_cut pp_case) cases
+  | Subset { arg; pred } ->
+      Format.fprintf fmt "{%s : %a | %a}" arg.name pp_term arg.ty pp_term pred
+  | SubsetIntro { value; proof } ->
+      Format.fprintf fmt "subset_intro(%a, %a)" pp_term value pp_term proof
+  | SubsetElim tm ->
+      Format.fprintf fmt "subset_elim(%a)" pp_term tm
+  | SubsetProof tm ->
+      Format.fprintf fmt "subset_proof(%a)" pp_term tm
 
 and pp_case fmt { pattern; body; _ } =
   Format.fprintf fmt "| %s(%a) => %a"
