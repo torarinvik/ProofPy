@@ -76,6 +76,11 @@ let rec pp_c_expr fmt = function
   | CUnOp (op, e) -> Format.fprintf fmt "(%s%a)" op pp_c_expr e
   | CFieldAccess (e, f) -> Format.fprintf fmt "%a.%s" pp_c_expr e f
 
+(* Print expression without outer parens for use in if/while conditions *)
+let pp_c_expr_cond fmt = function
+  | CBinOp (op, l, r) -> Format.fprintf fmt "%a %s %a" pp_c_expr l op pp_c_expr r
+  | e -> pp_c_expr fmt e
+
 let rec pp_c_stmt fmt = function
   | CReturn e -> Format.fprintf fmt "return %a;" pp_c_expr e
   | CExpr e -> Format.fprintf fmt "%a;" pp_c_expr e
@@ -87,12 +92,12 @@ let rec pp_c_stmt fmt = function
       Format.fprintf fmt "{@\n%a@\n}"
         (Format.pp_print_list ~pp_sep:Format.pp_print_cut pp_c_stmt) stmts
   | CIf (cond, then_, else_) ->
-      Format.fprintf fmt "if (%a) %a" pp_c_expr cond pp_c_stmt then_;
+      Format.fprintf fmt "if (%a) %a" pp_c_expr_cond cond pp_c_stmt then_;
       (match else_ with
       | Some e -> Format.fprintf fmt " else %a" pp_c_stmt e
       | None -> ())
   | CWhile (cond, body) ->
-      Format.fprintf fmt "while (%a) %a" pp_c_expr cond pp_c_stmt body
+      Format.fprintf fmt "while (%a) %a" pp_c_expr_cond cond pp_c_stmt body
 
 let pp_c_func_sig fmt f =
   Format.fprintf fmt "%a %s(%a);"
@@ -612,6 +617,9 @@ let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option 
                 ) cases
               in
               
+              (* Check if there's a default case *)
+              let has_default = List.exists (fun (v, _) -> v = None) switch_cases in
+              
               let rec build_if_chain = function
                 | [] -> []
                 | (Some v, stmts) :: rest ->
@@ -625,7 +633,20 @@ let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option 
                     [CIf (cond, then_block, else_block)]
                 | (None, stmts) :: _ -> stmts (* Default case *)
               in
-              build_if_chain switch_cases
+              let if_chain = build_if_chain switch_cases in
+              (* Add fallback return for non-void functions without default case *)
+              if has_default || ret_ty = CVoid then
+                if_chain
+              else
+                let fallback = 
+                  match ret_ty with
+                  | CInt32 -> [CReturn (CLitInt32 0l)]
+                  | CInt64 -> [CReturn (CLitInt64 0L)]
+                  | CDouble -> [CReturn (CLitFloat 0.0)]
+                  | CBool -> [CReturn (CLitBool false)]
+                  | _ -> [CReturn (CLitInt32 0l)]
+                in
+                if_chain @ fallback
 
         | App (lam, [arg]) ->
             (match lam.desc with
@@ -635,23 +656,29 @@ let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option 
                  let env' = (binder.name, var_name) :: env in
                  let ty = translate_type ctx binder.ty in
                  
+                 (* Check if this is a discarded binding (underscore pattern) *)
+                 let is_discarded = String.equal binder.name "_" in
+                 
                  (* Check if arg is complex *)
                  let arg_stmts, arg_init = 
                    match arg.desc with
                    | Match _ | If _ | App _ ->
                        (* Complex: generate statements to compute arg into var_name *)
-                       (* But if ty is void, don't try to assign - just execute *)
-                       if ty = CVoid then
+                       (* But if ty is void or discarded, don't try to assign - just execute *)
+                       if ty = CVoid || is_discarded then
                          (translate_pure env arg None CVoid, None)
                        else
                          (translate_pure env arg (Some var_name) ty, None)
                    | _ ->
-                       (* Simple: use initializer *)
-                       ([], Some (translate_term ctx env arg))
+                       (* Simple: use initializer, but if discarded just execute as expression *)
+                       if is_discarded then
+                         ([CExpr (translate_term ctx env arg)], None)
+                       else
+                         ([], Some (translate_term ctx env arg))
                  in
                  
                  let decl = 
-                   if ty = CVoid then []
+                   if ty = CVoid || is_discarded then []
                    else [CDecl (ty, var_name, arg_init)]
                  in
                  decl @ arg_stmts @ translate_pure env' body res_var ret_ty
@@ -659,7 +686,13 @@ let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option 
                  let body_expr = translate_term ctx env t in
                  match res_var with
                  | Some v -> [CExpr (CAssign (v, body_expr))]
-                 | None -> if ret_ty = CVoid then [CExpr body_expr] else [CReturn body_expr])
+                 | None -> 
+                     if ret_ty = CVoid then
+                       (* Skip generating "0;" for Unit values (tt) *)
+                       match body_expr with
+                       | CLitInt32 0l -> []
+                       | _ -> [CExpr body_expr]
+                     else [CReturn body_expr])
         | If { cond; then_; else_ } ->
             let cond_expr = translate_term ctx env cond in
             let then_stmts = translate_pure env then_ res_var ret_ty in
@@ -671,7 +704,13 @@ let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option 
             let body_expr = translate_term ctx env t in
             match res_var with
             | Some v -> [CExpr (CAssign (v, body_expr))]
-            | None -> if ret_ty = CVoid then [CExpr body_expr] else [CReturn body_expr]
+            | None -> 
+                if ret_ty = CVoid then
+                  (* Skip generating "0;" for Unit values (tt) *)
+                  match body_expr with
+                  | CLitInt32 0l -> []
+                  | _ -> [CExpr body_expr]
+                else [CReturn body_expr]
       in
       let body_stmts = translate_pure [] body None ret_type in
       Some {
