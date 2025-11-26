@@ -1,0 +1,105 @@
+{
+  "module": "Std.Pointer",
+  "imports": ["Std.Bool"],
+  "declarations": [
+    {
+      "inductive": {
+        "name": "Pointer",
+        "params": [{ "name": "T", "type": { "universe": "Type" } }],
+        "universe": "Type",
+        "constructors": [
+          { "name": "Nullpointer", "args": [] },
+          { "name": "Some", "args": [{ "name": "value", "type": { "var": "T" } }] }
+        ]
+      }
+    },
+    {
+      "def": {
+        "name": "is_null",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "T", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "ptr", "type": { "app": [{ "var": "Pointer" }, { "var": "T" }] } },
+                "result": { "prim": "Bool" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "T", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "ptr", "type": { "app": [{ "var": "Pointer" }, { "var": "T" }] } },
+                "body": {
+                  "match": {
+                    "scrutinee": { "var": "ptr" },
+                    "motive": { "prim": "Bool" },
+                    "cases": [
+                      {
+                        "pattern": { "ctor": "Nullpointer", "args": [] },
+                        "body": { "bool": true }
+                      },
+                      {
+                        "pattern": { "ctor": "Some", "args": [{ "name": "x" }] },
+                        "body": { "bool": false }
+                      }
+                    ],
+                    "coverage_hint": "complete"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "is_some",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "T", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "ptr", "type": { "app": [{ "var": "Pointer" }, { "var": "T" }] } },
+                "result": { "prim": "Bool" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "T", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "ptr", "type": { "app": [{ "var": "Pointer" }, { "var": "T" }] } },
+                "body": {
+                  "match": {
+                    "scrutinee": { "var": "ptr" },
+                    "motive": { "prim": "Bool" },
+                    "cases": [
+                      {
+                        "pattern": { "ctor": "Nullpointer", "args": [] },
+                        "body": { "bool": false }
+                      },
+                      {
+                        "pattern": { "ctor": "Some", "args": [{ "name": "x" }] },
+                        "body": { "bool": true }
+                      }
+                    ],
+                    "coverage_hint": "complete"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

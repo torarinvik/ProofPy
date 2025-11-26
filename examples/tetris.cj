@@ -123,21 +123,33 @@ def get_offset_y(ptype: Int32, rot: Int32, idx: Int32) -> Int32:
     return result
 
 # Collision check for a single block, returns 1 if collision, 0 if not
-def check_block_bounds(px: Int32, py: Int32, pt: Int32, pr: Int32, idx: Int32) -> Int32:
+def check_block_bounds(grid: VoidPtr, px: Int32, py: Int32, pt: Int32, pr: Int32, idx: Int32, res_ptr: VoidPtr) -> IO(Unit):
     bx: Int32 = px + get_offset_x(pt, pr, idx)
     by: Int32 = py + get_offset_y(pt, pr, idx)
     oob: Bool = (bx < 0) or (bx > 9) or (by > 19)
-    result: Int32 = 1 if oob else 0
-    return result
+    if oob:
+        store_int32(res_ptr, 1)
+    else:
+        if by < 0:
+            store_int32(res_ptr, 0)
+        else:
+            val: Int32 <- load_int32(ptr_offset(grid, (bx + by * 10) * 4))
+            res: Int32 = 1 if (val != 0) else 0
+            store_int32(res_ptr, res)
 
 # Check all 4 blocks for boundary collision
-def check_bounds(px: Int32, py: Int32, pt: Int32, pr: Int32) -> Int32:
-    c0: Int32 = check_block_bounds(px, py, pt, pr, 0)
-    c1: Int32 = check_block_bounds(px, py, pt, pr, 1)
-    c2: Int32 = check_block_bounds(px, py, pt, pr, 2)
-    c3: Int32 = check_block_bounds(px, py, pt, pr, 3)
-    result: Int32 = c0 + c1 + c2 + c3
-    return result
+def check_bounds(grid: VoidPtr, px: Int32, py: Int32, pt: Int32, pr: Int32) -> IO(Int32):
+    res_ptr: VoidPtr <- calloc(1L, 4L)
+    check_block_bounds(grid, px, py, pt, pr, 0, res_ptr)
+    c0: Int32 <- load_int32(res_ptr)
+    check_block_bounds(grid, px, py, pt, pr, 1, res_ptr)
+    c1: Int32 <- load_int32(res_ptr)
+    check_block_bounds(grid, px, py, pt, pr, 2, res_ptr)
+    c2: Int32 <- load_int32(res_ptr)
+    check_block_bounds(grid, px, py, pt, pr, 3, res_ptr)
+    c3: Int32 <- load_int32(res_ptr)
+    free(res_ptr)
+    return Std.IO.return(Int32, c0 + c1 + c2 + c3)
 
 def get_color_hex(c: Int32) -> Int32:
     result: Int32 = (0 - 16776961) if (c == 1) else (16711935 if (c == 2) else (65535 if (c == 3) else ((0 - 256) if (c == 4) else ((0 - 65281) if (c == 5) else ((0 - 5963521) if (c == 6) else (1431655935 if (c == 7) else 255))))))
@@ -223,11 +235,11 @@ def loop(grid: VoidPtr, px: Int32, py: Int32, pt: Int32, pr: Int32, timer: Int32
         new_pr: Int32 = ((pr + 1) % 4) if key_up else pr
         
         # Check horizontal collision (bounds only for simplicity)
-        h_coll: Int32 = check_bounds(new_px, py, pt, pr)
+        h_coll: Int32 <- check_bounds(grid, new_px, py, pt, pr)
         final_px: Int32 = px if (h_coll > 0) else new_px
         
         # Check rotation collision
-        r_coll: Int32 = check_bounds(px, py, pt, new_pr)
+        r_coll: Int32 <- check_bounds(grid, px, py, pt, new_pr)
         final_pr: Int32 = pr if (r_coll > 0) else new_pr
         
         # Calculate drop
@@ -236,7 +248,7 @@ def loop(grid: VoidPtr, px: Int32, py: Int32, pt: Int32, pr: Int32, timer: Int32
         new_py: Int32 = (py + 1) if should_drop else py
         
         # Check vertical collision
-        v_coll: Int32 = check_bounds(final_px, new_py, pt, final_pr)
+        v_coll: Int32 <- check_bounds(grid, final_px, new_py, pt, final_pr)
         need_lock: Bool = (v_coll > 0) and should_drop
         
         if need_lock:

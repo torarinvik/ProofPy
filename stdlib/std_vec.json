@@ -1,0 +1,149 @@
+{
+  "module": "Std.Vec",
+  "imports": ["Std.List", "Std.Nat", "Std.Eq"],
+  "declarations": [
+    {
+      "def": {
+        "name": "Vec",
+        "role": "both",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "n", "type": { "var": "Nat" } },
+                "result": { "universe": "Type" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "n", "type": { "var": "Nat" } },
+                "body": {
+                  "subset": {
+                    "arg": { "name": "l", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
+                    "pred": {
+                      "eq": {
+                        "type": { "var": "Nat" },
+                        "lhs": { "app": [{ "var": "length" }, { "var": "A" }, { "var": "l" }] },
+                        "rhs": { "var": "n" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "vnil",
+        "role": "both",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": { "app": [{ "var": "Vec" }, { "var": "A" }, { "var": "zero" }] }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "subset_intro": {
+                "value": { "app": [{ "var": "nil" }, { "var": "A" }] },
+                "proof": {
+                  "refl": {
+                    "eq": {
+                      "type": { "var": "Nat" },
+                      "lhs": { "var": "zero" },
+                      "rhs": { "var": "zero" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "vcons",
+        "role": "both",
+        "type": {
+          "pi": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "n", "type": { "var": "Nat" } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "h", "type": { "var": "A" } },
+                    "result": {
+                      "pi": {
+                        "arg": { "name": "t", "type": { "app": [{ "var": "Vec" }, { "var": "A" }, { "var": "n" }] } },
+                        "result": { "app": [{ "var": "Vec" }, { "var": "A" }, { "app": [{ "var": "succ" }, { "var": "n" }] }] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "A", "type": { "universe": "Type" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "n", "type": { "var": "Nat" } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "h", "type": { "var": "A" } },
+                    "body": {
+                      "lambda": {
+                        "arg": { "name": "t", "type": { "app": [{ "var": "Vec" }, { "var": "A" }, { "var": "n" }] } },
+                        "body": {
+                          "subset_intro": {
+                            "value": {
+                              "app": [
+                                { "var": "cons" },
+                                { "var": "A" },
+                                { "var": "h" },
+                                { "subset_elim": { "var": "t" } }
+                              ]
+                            },
+                            "proof": {
+                              "rewrite": {
+                                "proof": { "subset_proof": { "var": "t" } },
+                                "in": {
+                                  "refl": {
+                                    "eq": {
+                                      "type": { "var": "Nat" },
+                                      "lhs": { "app": [{ "var": "succ" }, { "var": "n" }] },
+                                      "rhs": { "app": [{ "var": "succ" }, { "var": "n" }] }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

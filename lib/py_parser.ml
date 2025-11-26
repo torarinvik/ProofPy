@@ -176,13 +176,20 @@ and parse_primary_expr state =
         | _ -> acc
       in
       let full_name = parse_dotted name in
-      (match peek state with
-       | LPAREN ->
-           advance state;
-           let args = parse_args state in
-           expect state RPAREN "Expected ')'";
-           mk_term (App (mk_term (Var full_name) None None, args)) None None
-       | _ -> mk_term (Var full_name) None None)
+      (match full_name with
+       | "Int32" -> mk_term (PrimType Int32) None None
+       | "Int64" -> mk_term (PrimType Int64) None None
+       | "Float64" -> mk_term (PrimType Float64) None None
+       | "Bool" -> mk_term (PrimType Bool) None None
+       | "String" -> mk_term (PrimType String) None None
+       | _ ->
+           (match peek state with
+            | LPAREN ->
+                advance state;
+                let args = parse_args state in
+                expect state RPAREN "Expected ')'";
+                mk_term (App (mk_term (Var full_name) None None, args)) None None
+            | _ -> mk_term (Var full_name) None None))
   | INT i -> advance state; mk_term (Literal (LitInt32 i)) None None
   | INT64 i -> advance state; mk_term (Literal (LitInt64 i)) None None
   | STRING s -> advance state; mk_term (Literal (LitString s)) None None
@@ -202,6 +209,15 @@ and parse_args state =
       match peek state with
       | COMMA -> advance state; first :: parse_args state
       | _ -> [first]
+
+let rec guess_io_type (t : term) : term =
+  match t.desc with
+  | App ({ desc = Var "bind"; _ }, [_; b; _; _]) -> b
+  | App ({ desc = Var "return"; _ }, [b; _]) -> b
+  | App ({ desc = Var "Std.IO.return"; _ }, [b; _]) -> b
+  | If { then_; _ } -> guess_io_type then_
+  | Match { cases; _ } -> (match cases with [] -> mk_term (Var "Unit") None None | c :: _ -> guess_io_type c.body)
+  | _ -> mk_term (Var "Unit") None None
 
 let rec parse_block state =
   expect state INDENT "Expected indented block";
@@ -244,9 +260,10 @@ and parse_stmt state =
          match rest.desc with
          | Var "tt" -> mk_term (If { cond; then_ = then_body; else_ = else_body }) None None
          | _ ->
+             let b_ty = guess_io_type rest in
              mk_term (App (mk_term (Var "bind") None None, 
                [mk_term (Universe Type) None None;
-                mk_term (Universe Type) None None;
+                b_ty;
                 mk_term (If { cond; then_ = then_body; else_ = else_body }) None None;
                 mk_term (Lambda { arg = { name = "_"; ty = mk_term (Universe Type) None None; role = Runtime; b_loc = None }; body = rest }) None None])) None None)
   | IDENT name ->
@@ -280,9 +297,10 @@ and parse_stmt state =
               match rest.desc with
               | Var "tt" -> expr_rest
               | _ ->
+                  let b_ty = guess_io_type rest in
                   mk_term (App (mk_term (Var "bind") None None, 
                     [mk_term (Var "Unit") None None;
-                     mk_term (Var "Unit") None None;
+                     b_ty;
                      expr_rest;
                      mk_term (Lambda { arg = { name = "_"; ty = mk_term (Var "Unit") None None; role = Runtime; b_loc = None }; body = rest }) None None])) None None)
       | COLON ->
@@ -300,9 +318,10 @@ and parse_stmt state =
                 let e = parse_expr state in
                 expect state NEWLINE "Expected newline";
                 (fun rest -> 
+                   let b_ty = guess_io_type rest in
                    mk_term (App (mk_term (Var "bind") None None, 
                      [ty;
-                      mk_term (Var "Unit") None None;
+                      b_ty;
                       e;
                       mk_term (Lambda { arg = { name = name; ty = ty; role = Runtime; b_loc = None }; body = rest }) None None])) None None)
             | _ -> raise (ParseError "Expected '=' or '<-' after type annotation"))
@@ -329,9 +348,10 @@ and parse_stmt state =
               match rest.desc with
               | Var "tt" -> expr_rest
               | _ ->
+                  let b_ty = guess_io_type rest in
                   mk_term (App (mk_term (Var "bind") None None, 
                     [mk_term (Var "Unit") None None;
-                     mk_term (Var "Unit") None None;
+                     b_ty;
                      expr_rest;
                      mk_term (Lambda { arg = { name = "_"; ty = mk_term (Var "Unit") None None; role = Runtime; b_loc = None }; body = rest }) None None])) None None)
       )
