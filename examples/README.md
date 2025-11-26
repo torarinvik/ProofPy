@@ -1,6 +1,6 @@
-# CertiJSON Examples
+# ProofPy Examples
 
-This directory contains example CertiJSON programs demonstrating various features of the language and the Standard Library.
+This directory contains example ProofPy programs (`.cj`) and CertiJSON IR files (`.json`) demonstrating various features of the language and the Standard Library.
 
 ## Running Examples
 
@@ -25,7 +25,7 @@ For examples that require external libraries (like `pong.json` and `tetris.json`
 ```
 
 This script will:
-1. Extract the CertiJSON code to C.
+1. Extract the CertiJSON IR to C.
 2. Compile it with the runtime library.
 3. Automatically link against Raylib if detected (requires `pkg-config`).
 4. Run the resulting executable (if `--run` is specified).

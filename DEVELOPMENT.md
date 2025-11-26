@@ -1,4 +1,4 @@
-# CertiJSON Development
+# ProofPy Development
 
 ## Prerequisites
 
@@ -39,7 +39,7 @@ dune runtest --force --verbose
 ## Running
 
 ```bash
-# Check a CertiJSON file
+# Check a ProofPy/CertiJSON file
 dune exec certijson -- check examples/nat.json
 
 # Parse and pretty-print
@@ -62,7 +62,7 @@ open _build/default/_doc/_html/index.html
 ## Project Structure
 
 ```
-CertiJSON/
+ProofPy/
 ├── lib/                    # Core library
 │   ├── syntax.ml          # Abstract syntax
 │   ├── json_parser.ml     # JSON → AST parser
