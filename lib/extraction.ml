@@ -191,6 +191,7 @@ let rec translate_term (ctx : Context.context) (env : (string * string) list) (t
       | Some "and" -> (match args with [a; b] -> CBinOp ("&&", translate_term ctx env a, translate_term ctx env b) | _ -> CVar "<invalid_and>")
       | Some "or" -> (match args with [a; b] -> CBinOp ("||", translate_term ctx env a, translate_term ctx env b) | _ -> CVar "<invalid_or>")
       | Some "not" -> (match args with [a] -> CUnOp ("!", translate_term ctx env a) | _ -> CVar "<invalid_not>")
+      | Some "neg" -> (match args with [a] -> CUnOp ("-", translate_term ctx env a) | _ -> CVar "<invalid_neg>")
       | Some name -> (
           let args' = 
             List.map (translate_term ctx env) args 
@@ -283,15 +284,53 @@ let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option 
            | None -> 
                let t = translate_term ctx env x in
                (match t with
-                | CVar "tt" -> [CExpr (CVar "return")]
+                | CVar "tt" -> [] (* return tt is a no-op *)
                 | _ -> [CReturn t])
           )
+      | App (f, args) when (match f.desc with Global n | Var n -> String.contains n '.' && String.sub n (String.length n - 7) 7 = ".return" | _ -> false) ->
+          (* Handle qualified return like Std.IO.return *)
+          let actual_args = List.filter (fun a -> match a.desc with | Universe _ -> false | Var "Unit" | Global "Unit" -> false | _ -> true) args in
+          (match actual_args with
+           | [x] ->
+               (match res_var with
+                | Some v -> [CExpr (CAssign (v, translate_term ctx env x))]
+                | None -> 
+                    let t = translate_term ctx env x in
+                    (match t with
+                     | CVar "tt" -> [] (* return tt is a no-op *)
+                     | _ -> [CReturn t]))
+           | _ -> [] (* return with no real args is a no-op *))
       | App (_, _) ->
-          let call = translate_term ctx env t in
-          (match res_var with
-           | Some v -> [CExpr (CAssign (v, call))] 
-           | None -> 
-               if ret_ty <> CVoid then [CReturn call] else [CExpr call]
+          (* Check for let-binding pattern: (λx.body) arg *)
+          let is_let_binding () =
+            match t.desc with
+            | App (lam, [arg]) ->
+                (match lam.desc with
+                 | Lambda _ -> Some (lam, arg)
+                 | _ -> None)
+            | _ -> None
+          in
+          (match is_let_binding () with
+           | Some (lam, arg) ->
+               (match lam.desc with
+                | Lambda { arg = binder; body } ->
+                    let var_name = fresh_name binder.name in
+                    let env' = (binder.name, var_name) :: env in
+                    let ty = translate_type ctx binder.ty in
+                    let arg_expr = translate_term ctx env arg in
+                    let decl = 
+                      if ty = CVoid then []
+                      else [CDecl (ty, var_name, Some arg_expr)]
+                    in
+                    let body_stmts = translate_io ctx env' body res_var ret_ty in
+                    decl @ body_stmts
+                | _ -> [CExpr (CVar "/* unexpected in let */")])
+           | None ->
+               let call = translate_term ctx env t in
+               (match res_var with
+                | Some v -> [CExpr (CAssign (v, call))] 
+                | None -> 
+                    if ret_ty <> CVoid then [CReturn call] else [CExpr call])
           )
       | If { cond; then_; else_ } ->
           let cond_expr = translate_term ctx env cond in

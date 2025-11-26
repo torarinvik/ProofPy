@@ -47,7 +47,30 @@ let rec parse_type state =
        | _ -> raise (ParseError "Expected identifier in refinement type"))
   | IDENT name ->
       advance state;
-      mk_term (Var name) None None
+      let rec parse_dotted acc =
+        match peek state with
+        | DOT ->
+            advance state;
+            (match peek state with
+             | IDENT n -> advance state; parse_dotted (acc ^ "." ^ n)
+             | _ -> raise (ParseError ("Expected identifier after dot, got " ^ (show_token (peek state)))))
+        | _ -> acc
+      in
+      let full_name = parse_dotted name in
+      (match full_name with
+       | "Int32" -> mk_term (PrimType Int32) None None
+       | "Int64" -> mk_term (PrimType Int64) None None
+       | "Float64" -> mk_term (PrimType Float64) None None
+       | "Bool" -> mk_term (PrimType Bool) None None
+       | "String" -> mk_term (PrimType String) None None
+       | _ ->
+           (match peek state with
+            | LPAREN ->
+                advance state;
+                let args = parse_type_args state in
+                expect state RPAREN "Expected ')'";
+                mk_term (App (mk_term (Var full_name) None None, args)) None None
+            | _ -> mk_term (Var full_name) None None))
   | LPAREN ->
       advance state;
       (match peek state with
@@ -68,8 +91,25 @@ let rec parse_type state =
        | _ -> raise (ParseError "Expected identifier in dependent type"))
   | _ -> raise (ParseError "Expected type")
 
+and parse_type_args state =
+  match peek state with
+  | RPAREN -> []
+  | _ ->
+      let first = parse_type state in
+      match peek state with
+      | COMMA -> advance state; first :: parse_type_args state
+      | _ -> [first]
+
 and parse_expr state =
-  parse_or_expr state
+  let left = parse_or_expr state in
+  match peek state with
+  | IF ->
+      advance state;
+      let cond = parse_or_expr state in
+      expect state ELSE "Expected 'else' in if expression";
+      let right = parse_expr state in
+      mk_term (If { cond; then_ = left; else_ = right }) None None
+  | _ -> left
 
 and parse_or_expr state =
   let left = parse_and_expr state in
@@ -125,13 +165,24 @@ and parse_primary_expr state =
   match peek state with
   | IDENT name ->
       advance state;
+      let rec parse_dotted acc =
+        match peek state with
+        | DOT ->
+            advance state;
+            (match peek state with
+             | IDENT n -> advance state; parse_dotted (acc ^ "." ^ n)
+             | RETURN -> advance state; parse_dotted (acc ^ ".return")
+             | _ -> raise (ParseError ("Expected identifier after dot, got " ^ (show_token (peek state)))))
+        | _ -> acc
+      in
+      let full_name = parse_dotted name in
       (match peek state with
        | LPAREN ->
            advance state;
            let args = parse_args state in
            expect state RPAREN "Expected ')'";
-           mk_term (App (mk_term (Var name) None None, args)) None None
-       | _ -> mk_term (Var name) None None)
+           mk_term (App (mk_term (Var full_name) None None, args)) None None
+       | _ -> mk_term (Var full_name) None None)
   | INT i -> advance state; mk_term (Literal (LitInt32 i)) None None
   | STRING s -> advance state; mk_term (Literal (LitString s)) None None
   | BOOL b -> advance state; mk_term (Literal (LitBool b)) None None
@@ -200,15 +251,60 @@ and parse_stmt state =
   | IDENT name ->
       (* Assignment or expression statement *)
       advance state;
+      let rec parse_dotted acc =
+        match peek state with
+        | DOT ->
+            advance state;
+            (match peek state with
+             | IDENT n -> advance state; parse_dotted (acc ^ "." ^ n)
+             | RETURN -> advance state; parse_dotted (acc ^ ".return")
+             | _ -> raise (ParseError ("Expected identifier after dot, got " ^ (show_token (peek state)))))
+        | _ -> acc
+      in
+      
       (match peek state with
-       | COLON ->
+      | DOT ->
+          let full_name = parse_dotted name in
+           let expr_rest = 
+             match peek state with
+             | LPAREN -> 
+                 advance state;
+                 let args = parse_args state in
+                 expect state RPAREN "Expected ')'";
+                 mk_term (App (mk_term (Var full_name) None None, args)) None None
+             | _ -> mk_term (Var full_name) None None
+           in
+           expect state NEWLINE "Expected newline after expression statement";
+           (fun rest -> 
+              match rest.desc with
+              | Var "tt" -> expr_rest
+              | _ ->
+                  mk_term (App (mk_term (Var "bind") None None, 
+                    [mk_term (Var "Unit") None None;
+                     mk_term (Var "Unit") None None;
+                     expr_rest;
+                     mk_term (Lambda { arg = { name = "_"; ty = mk_term (Var "Unit") None None; role = Runtime; b_loc = None }; body = rest }) None None])) None None)
+      | COLON ->
            advance state;
            let ty = parse_type state in
-           expect state ASSIGN "Expected '='";
-           let e = parse_expr state in
-           expect state NEWLINE "Expected newline";
-           (fun rest -> 
-              mk_term (App (mk_term (Lambda { arg = { name = name; ty = ty; role = Runtime; b_loc = None }; body = rest }) None None, [e])) None None)
+           (match peek state with
+            | ASSIGN ->
+                advance state;
+                let e = parse_expr state in
+                expect state NEWLINE "Expected newline";
+                (fun rest -> 
+                   mk_term (App (mk_term (Lambda { arg = { name = name; ty = ty; role = Runtime; b_loc = None }; body = rest }) None None, [e])) None None)
+            | LARROW ->
+                advance state;
+                let e = parse_expr state in
+                expect state NEWLINE "Expected newline";
+                (fun rest -> 
+                   mk_term (App (mk_term (Var "bind") None None, 
+                     [ty;
+                      mk_term (Var "Unit") None None;
+                      e;
+                      mk_term (Lambda { arg = { name = name; ty = ty; role = Runtime; b_loc = None }; body = rest }) None None])) None None)
+            | _ -> raise (ParseError "Expected '=' or '<-' after type annotation"))
        | ASSIGN ->
            raise (ParseError "Type annotation required for assignment (x: T = e)")
        | _ ->
@@ -233,10 +329,10 @@ and parse_stmt state =
               | Var "tt" -> expr_rest
               | _ ->
                   mk_term (App (mk_term (Var "bind") None None, 
-                    [mk_term (Universe Type) None None;
-                     mk_term (Universe Type) None None;
+                    [mk_term (Var "Unit") None None;
+                     mk_term (Var "Unit") None None;
                      expr_rest;
-                     mk_term (Lambda { arg = { name = "_"; ty = mk_term (Universe Type) None None; role = Runtime; b_loc = None }; body = rest }) None None])) None None)
+                     mk_term (Lambda { arg = { name = "_"; ty = mk_term (Var "Unit") None None; role = Runtime; b_loc = None }; body = rest }) None None])) None None)
       )
   | NEWLINE -> advance state; parse_stmt state (* Skip empty lines *)
   | _ -> raise (ParseError ("Unexpected token in statement: " ^ (show_token (peek state))))

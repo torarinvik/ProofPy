@@ -119,7 +119,9 @@ and load_imports (config : config) (cache : cache) (stack : name list) (mod_ : m
         | Error e -> Error e
         | Ok imp_sig ->
             let acc' = Context.merge_signatures acc imp_sig in
-            loop acc' rest
+            let qualified_sig = Context.qualify_signature imp imp_sig in
+            let acc'' = Context.merge_signatures acc' qualified_sig in
+            loop acc'' rest
   in
   match loop (Context.empty_sig ()) mod_.imports with
   | Error e -> Error e

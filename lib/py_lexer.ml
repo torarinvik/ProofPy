@@ -14,6 +14,7 @@ type token =
   | PLUS | MINUS | STAR | SLASH | PERCENT
   | AND | OR | NOT
   | PIPE
+  | LARROW (* <- *)
   | INDENT | DEDENT | NEWLINE
   | EOF
 [@@deriving show, eq]
@@ -165,6 +166,7 @@ let tokenize (source : string) : token list =
     | '<' ->
         ignore (advance ());
         if peek () = '=' then (ignore (advance ()); add LE)
+        else if peek () = '-' then (ignore (advance ()); add LARROW)
         else add LT
     | '>' ->
         ignore (advance ());

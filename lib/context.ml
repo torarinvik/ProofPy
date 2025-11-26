@@ -169,3 +169,12 @@ let constructor_type (ind : inductive_decl) (ctor : constructor_decl) : term =
   List.fold_right
     (fun p acc -> mk ?loc:p.b_loc (Pi { arg = p; result = acc }))
     ind.params with_args
+
+(** Qualify all names in a signature with a prefix. *)
+let qualify_signature (prefix : string) (sig_ : signature) : signature =
+  let new_sig = empty_sig () in
+  Hashtbl.iter (fun name entry ->
+    let new_name = prefix ^ "." ^ name in
+    add_entry new_sig new_name entry
+  ) sig_.entries;
+  new_sig
