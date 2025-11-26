@@ -883,13 +883,15 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
       (* Check constructor types (simplified - full check needs positivity) *)
       List.iter
         (fun ctor ->
-          List.iter
-            (fun arg ->
-              let arg_kind = infer ctx' arg.ty in
-              match arg_kind.desc with
+          let _ = List.fold_left
+            (fun c arg ->
+              let arg_kind = infer c arg.ty in
+              (match arg_kind.desc with
               | Universe _ -> ()
-              | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))))
-            ctor.ctor_args)
+              | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
+              extend c arg.name arg.ty)
+            ctx' ctor.ctor_args
+          in ())
         ind.constructors;
         (* Strict positivity: inductive must not appear in negative position in args. *)
         List.iter

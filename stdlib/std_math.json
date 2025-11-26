@@ -5,7 +5,7 @@
     {
       "def": {
         "name": "add",
-        "role": "proof_only",
+        "role": "runtime",
         "type": {
           "pi": {
             "arg": { "name": "a", "type": { "prim": "Int32" } },
@@ -24,6 +24,416 @@
               "lambda": {
                 "arg": { "name": "b", "type": { "prim": "Int32" } },
                 "body": { "int32": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "sub",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Int32" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "int32": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "mul",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Int32" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "int32": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "div",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Int32" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "int32": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "mod",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Int32" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "int32": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "neg",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": { "prim": "Int32" }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": { "int32": 0 }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "lt",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Bool" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "bool": false }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "gt",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Bool" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "bool": false }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "eq",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Bool" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "bool": false }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "le",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Bool" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "bool": false }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "ge",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Bool" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "bool": false }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "ne",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "result": { "prim": "Bool" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int32" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int32" } },
+                "body": { "bool": false }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "add64_builtin",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int64" } },
+                "result": { "prim": "Int64" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int64" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int64" } },
+                "body": { "int64": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "sub64_builtin",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int64" } },
+                "result": { "prim": "Int64" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int64" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int64" } },
+                "body": { "int64": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "mul64_builtin",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int64" } },
+                "result": { "prim": "Int64" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int64" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int64" } },
+                "body": { "int64": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "div64_builtin",
+        "role": "runtime",
+        "type": {
+          "pi": {
+            "arg": { "name": "a", "type": { "prim": "Int64" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "b", "type": { "prim": "Int64" } },
+                "result": { "prim": "Int64" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "a", "type": { "prim": "Int64" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "b", "type": { "prim": "Int64" } },
+                "body": { "int64": 0 }
               }
             }
           }

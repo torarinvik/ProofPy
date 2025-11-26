@@ -173,6 +173,67 @@
     },
     {
       "def": {
+        "name": "sub_nat",
+        "role": "runtime",
+        "rec_args": [0],
+        "type": {
+          "pi": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "m", "type": { "var": "Nat" } },
+                "result": { "var": "Nat" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "m", "type": { "var": "Nat" } },
+                "body": {
+                  "match": {
+                    "scrutinee": { "var": "n" },
+                    "motive": { "var": "Nat" },
+                    "cases": [
+                      {
+                        "pattern": { "ctor": "zero", "args": [] },
+                        "body": { "var": "zero" }
+                      },
+                      {
+                        "pattern": { "ctor": "succ", "args": [{ "name": "n_pred" }] },
+                        "body": {
+                          "match": {
+                            "scrutinee": { "var": "m" },
+                            "motive": { "var": "Nat" },
+                            "cases": [
+                              {
+                                "pattern": { "ctor": "zero", "args": [] },
+                                "body": { "var": "n" }
+                              },
+                              {
+                                "pattern": { "ctor": "succ", "args": [{ "name": "m_pred" }] },
+                                "body": { "app": [{ "var": "sub_nat" }, { "var": "n_pred" }, { "var": "m_pred" }] }
+                              }
+                            ],
+                            "coverage_hint": "complete"
+                          }
+                        }
+                      }
+                    ],
+                    "coverage_hint": "complete"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
         "name": "eq_nat",
         "role": "runtime",
         "rec_args": [0],
@@ -370,6 +431,32 @@
             }
           }
         }
+      }
+    },
+    {
+      "inductive": {
+        "name": "le",
+        "params": [
+          { "name": "n", "type": { "var": "Nat" } },
+          { "name": "m", "type": { "var": "Nat" } }
+        ],
+        "universe": "Prop",
+        "constructors": [
+          {
+            "name": "le_refl",
+            "args": [
+              { "name": "eq", "type": { "eq": { "type": { "var": "Nat" }, "lhs": { "var": "n" }, "rhs": { "var": "m" } } } }
+            ]
+          },
+          {
+            "name": "le_succ",
+            "args": [
+              { "name": "k", "type": { "var": "Nat" } },
+              { "name": "prev", "type": { "app": [{ "var": "le" }, { "var": "n" }, { "var": "k" }] } },
+              { "name": "eq", "type": { "eq": { "type": { "var": "Nat" }, "lhs": { "var": "m" }, "rhs": { "app": [{ "var": "succ" }, { "var": "k" }] } } } }
+            ]
+          }
+        ]
       }
     },
     {

@@ -48,6 +48,7 @@ let resolve_import (name : name) : string option =
     | "Std.Char" -> "std_char.json"
     | "Std.List" -> "std_list.json"
     | "Std.Eq" -> "std_eq.json"
+    | "Std.Nat" -> "std_nat.json"
     | "Std.Either" -> "std_either.json"
     | _ ->
         name ^ ".json" 

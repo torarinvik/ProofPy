@@ -1,6 +1,6 @@
 {
   "module": "Std.List",
-  "imports": ["Std.Option", "Std.Math"],
+  "imports": ["Std.Option", "Std.Math", "Std.Nat"],
   "declarations": [
     {
       "inductive": {
@@ -152,14 +152,14 @@
       "def": {
         "name": "length",
         "role": "runtime",
-        "rec_args": [2],
+        "rec_args": [1],
         "type": {
           "pi": {
             "arg": { "name": "A", "type": { "universe": "Type" } },
             "result": {
               "pi": {
                 "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
-                "result": { "prim": "Int32" }
+                "result": { "var": "Nat" }
               }
             }
           }
@@ -173,15 +173,15 @@
                 "body": {
                   "match": {
                     "scrutinee": { "var": "xs" },
-                    "motive": { "prim": "Int32" },
+                    "motive": { "var": "Nat" },
                     "cases": [
                       {
                         "pattern": { "ctor": "nil", "args": [] },
-                        "body": { "int32": 0 }
+                        "body": { "var": "zero" }
                       },
                       {
                         "pattern": { "ctor": "cons", "args": [{ "name": "h" }, { "name": "t" }] },
-                        "body": { "app": [{ "var": "add" }, { "int32": 1 }, { "app": [{ "var": "length" }, { "var": "A" }, { "var": "t" }] }] }
+                        "body": { "app": [{ "var": "succ" }, { "app": [{ "var": "length" }, { "var": "A" }, { "var": "t" }] }] }
                       }
                     ],
                     "coverage_hint": "complete"
@@ -639,7 +639,7 @@
       "def": {
         "name": "nth",
         "role": "runtime",
-        "rec_args": [2],
+        "rec_args": [1],
         "type": {
           "pi": {
             "arg": { "name": "A", "type": { "universe": "Type" } },
@@ -648,7 +648,7 @@
                 "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
                 "result": {
                   "pi": {
-                    "arg": { "name": "n", "type": { "prim": "Int32" } },
+                    "arg": { "name": "n", "type": { "var": "Nat" } },
                     "result": { "app": [{ "var": "Option" }, { "var": "A" }] }
                   }
                 }
@@ -664,7 +664,7 @@
                 "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
                 "body": {
                   "lambda": {
-                    "arg": { "name": "n", "type": { "prim": "Int32" } },
+                    "arg": { "name": "n", "type": { "var": "Nat" } },
                     "body": {
                       "match": {
                         "scrutinee": { "var": "xs" },
@@ -677,10 +677,20 @@
                           {
                             "pattern": { "ctor": "cons", "args": [{ "name": "h" }, { "name": "t" }] },
                             "body": {
-                              "if": {
-                                "cond": { "app": [{ "var": "eq" }, { "var": "n" }, { "int32": 0 }] },
-                                "then": { "app": [{ "var": "some" }, { "var": "A" }, { "var": "h" }] },
-                                "else": { "app": [{ "var": "nth" }, { "var": "A" }, { "var": "t" }, { "app": [{ "var": "sub" }, { "var": "n" }, { "int32": 1 }] }] }
+                              "match": {
+                                "scrutinee": { "var": "n" },
+                                "motive": { "app": [{ "var": "Option" }, { "var": "A" }] },
+                                "cases": [
+                                  {
+                                    "pattern": { "ctor": "zero", "args": [] },
+                                    "body": { "app": [{ "var": "some" }, { "var": "A" }, { "var": "h" }] }
+                                  },
+                                  {
+                                    "pattern": { "ctor": "succ", "args": [{ "name": "k" }] },
+                                    "body": { "app": [{ "var": "nth" }, { "var": "A" }, { "var": "t" }, { "var": "k" }] }
+                                  }
+                                ],
+                                "coverage_hint": "complete"
                               }
                             }
                           }
@@ -700,13 +710,13 @@
       "def": {
         "name": "take",
         "role": "runtime",
-        "rec_args": [2],
+        "rec_args": [1],
         "type": {
           "pi": {
             "arg": { "name": "A", "type": { "universe": "Type" } },
             "result": {
               "pi": {
-                "arg": { "name": "n", "type": { "prim": "Int32" } },
+                "arg": { "name": "n", "type": { "var": "Nat" } },
                 "result": {
                   "pi": {
                     "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
@@ -722,31 +732,41 @@
             "arg": { "name": "A", "type": { "universe": "Type" } },
             "body": {
               "lambda": {
-                "arg": { "name": "n", "type": { "prim": "Int32" } },
+                "arg": { "name": "n", "type": { "var": "Nat" } },
                 "body": {
                   "lambda": {
                     "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
                     "body": {
-                      "if": {
-                        "cond": { "app": [{ "var": "le" }, { "var": "n" }, { "int32": 0 }] },
-                        "then": { "app": [{ "var": "nil" }, { "var": "A" }] },
-                        "else": {
-                          "match": {
-                            "scrutinee": { "var": "xs" },
-                            "motive": { "app": [{ "var": "List" }, { "var": "A" }] },
-                            "cases": [
-                              {
-                                "pattern": { "ctor": "nil", "args": [] },
-                                "body": { "app": [{ "var": "nil" }, { "var": "A" }] }
-                              },
-                              {
-                                "pattern": { "ctor": "cons", "args": [{ "name": "h" }, { "name": "t" }] },
-                                "body": { "app": [{ "var": "cons" }, { "var": "A" }, { "var": "h" }, { "app": [{ "var": "take" }, { "var": "A" }, { "app": [{ "var": "sub" }, { "var": "n" }, { "int32": 1 }] }, { "var": "t" }] }] }
+                      "match": {
+                        "scrutinee": { "var": "n" },
+                        "motive": { "app": [{ "var": "List" }, { "var": "A" }] },
+                        "cases": [
+                          {
+                            "pattern": { "ctor": "zero", "args": [] },
+                            "body": { "app": [{ "var": "nil" }, { "var": "A" }] }
+                          },
+                          {
+                            "pattern": { "ctor": "succ", "args": [{ "name": "k" }] },
+                            "body": {
+                              "match": {
+                                "scrutinee": { "var": "xs" },
+                                "motive": { "app": [{ "var": "List" }, { "var": "A" }] },
+                                "cases": [
+                                  {
+                                    "pattern": { "ctor": "nil", "args": [] },
+                                    "body": { "app": [{ "var": "nil" }, { "var": "A" }] }
+                                  },
+                                  {
+                                    "pattern": { "ctor": "cons", "args": [{ "name": "h" }, { "name": "t" }] },
+                                    "body": { "app": [{ "var": "cons" }, { "var": "A" }, { "var": "h" }, { "app": [{ "var": "take" }, { "var": "A" }, { "var": "k" }, { "var": "t" }] }] }
+                                  }
+                                ],
+                                "coverage_hint": "complete"
                               }
-                            ],
-                            "coverage_hint": "complete"
+                            }
                           }
-                        }
+                        ],
+                        "coverage_hint": "complete"
                       }
                     }
                   }
@@ -761,13 +781,13 @@
       "def": {
         "name": "drop",
         "role": "runtime",
-        "rec_args": [2],
+        "rec_args": [1],
         "type": {
           "pi": {
             "arg": { "name": "A", "type": { "universe": "Type" } },
             "result": {
               "pi": {
-                "arg": { "name": "n", "type": { "prim": "Int32" } },
+                "arg": { "name": "n", "type": { "var": "Nat" } },
                 "result": {
                   "pi": {
                     "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
@@ -783,31 +803,41 @@
             "arg": { "name": "A", "type": { "universe": "Type" } },
             "body": {
               "lambda": {
-                "arg": { "name": "n", "type": { "prim": "Int32" } },
+                "arg": { "name": "n", "type": { "var": "Nat" } },
                 "body": {
                   "lambda": {
                     "arg": { "name": "xs", "type": { "app": [{ "var": "List" }, { "var": "A" }] } },
                     "body": {
-                      "if": {
-                        "cond": { "app": [{ "var": "le" }, { "var": "n" }, { "int32": 0 }] },
-                        "then": { "var": "xs" },
-                        "else": {
-                          "match": {
-                            "scrutinee": { "var": "xs" },
-                            "motive": { "app": [{ "var": "List" }, { "var": "A" }] },
-                            "cases": [
-                              {
-                                "pattern": { "ctor": "nil", "args": [] },
-                                "body": { "app": [{ "var": "nil" }, { "var": "A" }] }
-                              },
-                              {
-                                "pattern": { "ctor": "cons", "args": [{ "name": "h" }, { "name": "t" }] },
-                                "body": { "app": [{ "var": "drop" }, { "var": "A" }, { "app": [{ "var": "sub" }, { "var": "n" }, { "int32": 1 }] }, { "var": "t" }] }
+                      "match": {
+                        "scrutinee": { "var": "n" },
+                        "motive": { "app": [{ "var": "List" }, { "var": "A" }] },
+                        "cases": [
+                          {
+                            "pattern": { "ctor": "zero", "args": [] },
+                            "body": { "var": "xs" }
+                          },
+                          {
+                            "pattern": { "ctor": "succ", "args": [{ "name": "k" }] },
+                            "body": {
+                              "match": {
+                                "scrutinee": { "var": "xs" },
+                                "motive": { "app": [{ "var": "List" }, { "var": "A" }] },
+                                "cases": [
+                                  {
+                                    "pattern": { "ctor": "nil", "args": [] },
+                                    "body": { "app": [{ "var": "nil" }, { "var": "A" }] }
+                                  },
+                                  {
+                                    "pattern": { "ctor": "cons", "args": [{ "name": "h" }, { "name": "t" }] },
+                                    "body": { "app": [{ "var": "drop" }, { "var": "A" }, { "var": "k" }, { "var": "t" }] }
+                                  }
+                                ],
+                                "coverage_hint": "complete"
                               }
-                            ],
-                            "coverage_hint": "complete"
+                            }
                           }
-                        }
+                        ],
+                        "coverage_hint": "complete"
                       }
                     }
                   }
