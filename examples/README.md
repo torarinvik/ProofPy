@@ -16,6 +16,26 @@ For examples that only demonstrate type checking (like FFI definitions), use `ch
 dune exec certijson -- check examples/<filename>.json
 ```
 
+## Building Executables
+
+For examples that require external libraries (like `pong.json` and `tetris.json` which use Raylib), or if you want to compile to a native executable, use the `build.py` script:
+
+```bash
+./build.py examples/pong.json --run
+```
+
+This script will:
+1. Extract the CertiJSON code to C.
+2. Compile it with the runtime library.
+3. Automatically link against Raylib if detected (requires `pkg-config`).
+4. Run the resulting executable (if `--run` is specified).
+
+Options:
+- `--run`: Run the executable after building.
+- `--output <name>`: Specify the output executable name.
+- `--libs <libs>`: Manually specify libraries to link (comma-separated).
+- `--debug`: Enable debug symbols.
+
 ## List of Examples
 
 ### Basic
