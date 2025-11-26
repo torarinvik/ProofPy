@@ -56,6 +56,10 @@ let rec infer_universe (ctx : context) (t : term) : universe option =
       let _ = infer_universe ctx arg.ty in
       (* Predicate must be Prop, but Subset lives in same universe as arg *)
       infer_universe ctx arg.ty
+  | Array { elem_ty; size = _ } ->
+      infer_universe ctx elem_ty
+  | ArrayHandle { elem_ty; size = _ } ->
+      infer_universe ctx elem_ty
   | _ -> None
 
 (** {1 Definitional Equality} *)
@@ -187,6 +191,10 @@ let rec equal_ignoring_loc (t1 : term) (t2 : term) : bool =
       equal_ignoring_loc v1 v2 && equal_ignoring_loc p1 p2
   | SubsetElim t1, SubsetElim t2 -> equal_ignoring_loc t1 t2
   | SubsetProof t1, SubsetProof t2 -> equal_ignoring_loc t1 t2
+  | Array { elem_ty=t1; size=s1 }, Array { elem_ty=t2; size=s2 } ->
+      equal_ignoring_loc t1 t2 && equal_ignoring_loc s1 s2
+  | ArrayHandle { elem_ty=t1; size=s1 }, ArrayHandle { elem_ty=t2; size=s2 } ->
+      equal_ignoring_loc t1 t2 && equal_ignoring_loc s1 s2
   | _ -> false
 
 (** Check definitional equality of two terms. *)
@@ -261,6 +269,10 @@ and conv_whnf (ctx : context) (t1 : term) (t2 : term) : bool =
       conv ctx v1 v2 && conv ctx p1 p2
   | SubsetElim t1, SubsetElim t2 -> conv ctx t1 t2
   | SubsetProof t1, SubsetProof t2 -> conv ctx t1 t2
+  | Array { elem_ty=t1; size=s1 }, Array { elem_ty=t2; size=s2 } ->
+      conv ctx t1 t2 && conv ctx s1 s2
+  | ArrayHandle { elem_ty=t1; size=s1 }, ArrayHandle { elem_ty=t2; size=s2 } ->
+      conv ctx t1 t2 && conv ctx s1 s2
   | _ -> false
 
 (** Substitute a list of (name, term) pairs into a term. *)
@@ -327,6 +339,10 @@ let rec subst_term (old_t : term) (new_t : term) (t : term) : term =
       mk ?loc:t.loc (SubsetElim (subst_term old_t new_t tm))
   | SubsetProof tm ->
       mk ?loc:t.loc (SubsetProof (subst_term old_t new_t tm))
+  | Array { elem_ty; size } ->
+      mk ?loc:t.loc (Array { elem_ty = subst_term old_t new_t elem_ty; size = subst_term old_t new_t size })
+  | ArrayHandle { elem_ty; size } ->
+      mk ?loc:t.loc (ArrayHandle { elem_ty = subst_term old_t new_t elem_ty; size = subst_term old_t new_t size })
 
 (** Collect leading Π binders from a type. *)
 let rec collect_pi_binders (t : term) : binder list * term =
@@ -427,6 +443,10 @@ let rec positive_occurrences (target : name) (positive : bool) (t : term) : bool
       go positive value && go positive proof
   | SubsetElim tm -> go positive tm
   | SubsetProof tm -> go positive tm
+  | Array { elem_ty; size } ->
+      go positive elem_ty && go positive size
+  | ArrayHandle { elem_ty; size } ->
+      go positive elem_ty && go positive size
 
 (** {1 Type Inference} *)
 
@@ -652,6 +672,22 @@ let rec infer (ctx : context) (t : term) : term =
           let val_tm = mk ?loc:t.loc (SubsetElim tm) in
           subst arg.name val_tm pred
       | _ -> raise (TypeError (TypeMismatch { expected = mk (Var "Subset type"); actual = tm_ty'; context = "subset proof elimination"; loc = tm.loc })))
+  | Array { elem_ty; size } ->
+      let arg_kind = infer ctx elem_ty in
+      (match arg_kind.desc with
+      | Universe _ -> ()
+      | _ -> raise (TypeError (NotAType (elem_ty, elem_ty.loc))));
+      (* Check size is Nat *)
+      let _ = check ctx size (mk (Var "Nat")) in
+      mk ?loc:t.loc (Universe Type)
+  | ArrayHandle { elem_ty; size } ->
+      let arg_kind = infer ctx elem_ty in
+      (match arg_kind.desc with
+      | Universe _ -> ()
+      | _ -> raise (TypeError (NotAType (elem_ty, elem_ty.loc))));
+      (* Check size is Nat *)
+      let _ = check ctx size (mk (Var "Nat")) in
+      mk ?loc:t.loc (Universe Type)
 
 (** Check that a term has a given type. *)
 and check (ctx : context) (t : term) (expected : term) : unit =
@@ -722,6 +758,8 @@ let rec has_self_reference (self : name) (t : term) : bool =
   | SubsetIntro { value; proof } -> has_self_reference self value || has_self_reference self proof
   | SubsetElim tm -> has_self_reference self tm
   | SubsetProof tm -> has_self_reference self tm
+  | Array { elem_ty; size } -> has_self_reference self elem_ty || has_self_reference self size
+  | ArrayHandle { elem_ty; size } -> has_self_reference self elem_ty || has_self_reference self size
 
 let check_termination (def : def_decl) : unit =
   let params, _ = collect_pi_binders def.def_type in
@@ -892,6 +930,12 @@ let check_termination (def : def_decl) : unit =
             check_term allowed proof
         | SubsetElim tm -> check_term allowed tm
         | SubsetProof tm -> check_term allowed tm
+        | Array { elem_ty; size } ->
+            check_term allowed elem_ty;
+            check_term allowed size
+        | ArrayHandle { elem_ty; size } ->
+            check_term allowed elem_ty;
+            check_term allowed size
       in
       check_term initial_allowed lam_body)
 

@@ -22,6 +22,8 @@ type value =
   | VExternIO of extern_io_decl * value list
   | VBuiltin of string * value list
   | VSubset of { arg : binder; pred : term; env : env }
+  | VArray of { elem_ty : value; size : value }
+  | VArrayHandle of { elem_ty : value; size : value }
 
 (** Neutral terms (stuck computations). *)
 and neutral =
@@ -42,6 +44,43 @@ let extend_env (env : env) (x : name) (v : value) : env =
 
 let lookup_env (env : env) (x : name) : value option =
   List.assoc_opt x env
+
+(** {1 Heap for Arrays} *)
+
+let heap : (int64, value array) Hashtbl.t = Hashtbl.create 100
+let next_ptr = ref 1L
+
+let alloc_array (size : int) (init : value) : int64 =
+  let ptr = !next_ptr in
+  next_ptr := Int64.add ptr 1L;
+  let arr = Array.make size init in
+  Hashtbl.add heap ptr arr;
+  ptr
+
+let get_array (ptr : int64) (idx : int) : value =
+  match Hashtbl.find_opt heap ptr with
+  | Some arr -> 
+      if idx >= 0 && idx < Array.length arr then arr.(idx)
+      else failwith "Array index out of bounds"
+  | None -> failwith "Invalid array pointer"
+
+let set_array (ptr : int64) (idx : int) (v : value) : unit =
+  match Hashtbl.find_opt heap ptr with
+  | Some arr ->
+      if idx >= 0 && idx < Array.length arr then arr.(idx) <- v
+      else failwith "Array index out of bounds"
+  | None -> failwith "Invalid array pointer"
+
+let free_array (ptr : int64) : unit =
+  Hashtbl.remove heap ptr
+
+let rec nat_to_int (v : value) : int =
+  match v with
+  | VConstructor ("zero", []) -> 0
+  | VConstructor ("succ", [n]) -> 1 + nat_to_int n
+  | VConstructor ("fzero", _) -> 0
+  | VConstructor ("fsucc", [_; i]) -> 1 + nat_to_int i
+  | _ -> 0 (* failwith "Not a Nat" - be lenient for now *)
 
 (** {1 Evaluation} *)
 
@@ -96,6 +135,10 @@ let rec eval (ctx : context) (env : env) (t : term) : value =
   | SubsetIntro { value; proof = _ } -> eval ctx env value
   | SubsetElim tm -> eval ctx env tm
   | SubsetProof _ -> VConstructor ("tt", [])
+  | Array { elem_ty; size } ->
+      VArray { elem_ty = eval ctx env elem_ty; size = eval ctx env size }
+  | ArrayHandle { elem_ty; size } ->
+      VArrayHandle { elem_ty = eval ctx env elem_ty; size = eval ctx env size }
   | If { cond; then_; else_ } ->
       let cond_val = eval ctx env cond in
       (match cond_val with
@@ -243,6 +286,41 @@ and apply (ctx : context) (f : value) (arg : value) : value =
                     VLiteral (LitInt32 0l)
                 | _ -> VConstructor ("tt", [])
               )
+            | "cj_array_new" -> (
+                match args with
+                | [_; n; v] ->
+                    let size = nat_to_int n in
+                    let ptr = alloc_array size v in
+                    let handle_val = VLiteral (LitInt64 ptr) in
+                    handle_val
+                | _ -> VConstructor ("tt", [])
+              )
+            | "cj_array_get" -> (
+                match args with
+                | [_; _; handle; i] ->
+                    let ptr = match handle with VLiteral (LitInt64 p) -> p | _ -> 0L in
+                    let idx = nat_to_int i in
+                    let val_ = get_array ptr idx in
+                    val_
+                | _ -> VConstructor ("tt", [])
+              )
+            | "cj_array_set" -> (
+                match args with
+                | [_; _; handle; i; v] ->
+                    let ptr = match handle with VLiteral (LitInt64 p) -> p | _ -> 0L in
+                    let idx = nat_to_int i in
+                    set_array ptr idx v;
+                    VConstructor ("tt", [])
+                | _ -> VConstructor ("tt", [])
+              )
+            | "cj_array_drop" -> (
+                match args with
+                | [_; _; handle] ->
+                    let ptr = match handle with VLiteral (LitInt64 p) -> p | _ -> 0L in
+                    free_array ptr;
+                    VConstructor ("tt", [])
+                | _ -> VConstructor ("tt", [])
+              )
             | _ -> Printf.printf "[IO] %s (c_name: %s)\n" ext.extern_io_name ext.c_name; VConstructor ("tt", [])
             in
             VConstructor ("pair", [result; VWorld])
@@ -386,6 +464,8 @@ let rec quote (v : value) : term =
       let head = mk (Global op) in
       mk (App (head, List.map quote args))
   | VSubset { arg; pred; env = _ } -> mk ?loc:arg.b_loc (Subset { arg; pred })
+  | VArray { elem_ty; size } -> mk (Array { elem_ty = quote elem_ty; size = quote size })
+  | VArrayHandle { elem_ty; size } -> mk (ArrayHandle { elem_ty = quote elem_ty; size = quote size })
   | VNeutral n -> quote_neutral n
 
 and quote_neutral (n : neutral) : term =
@@ -429,4 +509,10 @@ let rec value_eq (v1 : value) (v2 : value) : bool =
       String.equal op1 op2 &&
       List.length args1 = List.length args2 &&
       List.for_all2 value_eq args1 args2
+  | VArray { elem_ty=t1; size=s1 }, VArray { elem_ty=t2; size=s2 } ->
+      value_eq t1 t2 && value_eq s1 s2
+  | VArrayHandle { elem_ty=t1; size=s1 }, VArrayHandle { elem_ty=t2; size=s2 } ->
+      value_eq t1 t2 && value_eq s1 s2
   | _ -> false
+
+

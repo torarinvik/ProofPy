@@ -265,6 +265,28 @@ let rec parse_term ~(file : string option) (json : json) : term =
       let proof = get_field json "subset_proof" in
       let value = parse_term ~file (get_field proof "value") in
       { desc = SubsetProof value; loc }
+  | _ when has_field json "array" ->
+      let arr = get_field json "array" in
+      {
+        desc =
+          Array
+            {
+              elem_ty = parse_term ~file (get_field arr "type");
+              size = parse_term ~file (get_field arr "size");
+            };
+        loc;
+      }
+  | _ when has_field json "array_handle" ->
+      let arr = get_field json "array_handle" in
+      {
+        desc =
+          ArrayHandle
+            {
+              elem_ty = parse_term ~file (get_field arr "type");
+              size = parse_term ~file (get_field arr "size");
+            };
+        loc;
+      }
   | _ when has_field json "app" ->
       let apps = get_list (get_field json "app") in
       (match apps with

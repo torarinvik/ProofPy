@@ -1,0 +1,212 @@
+{
+  "module": "ArrayTest",
+  "imports": ["Std.IO", "Std.Nat", "Std.Fin", "Std.Array"],
+  "declarations": [
+    {
+      "def": {
+        "name": "n3",
+        "role": "runtime",
+        "type": { "var": "Nat" },
+        "body": {
+          "app": [
+            { "var": "succ" },
+            { "app": [
+                { "var": "succ" },
+                { "app": [
+                    { "var": "succ" },
+                    { "var": "zero" }
+                ]}
+            ]}
+          ]
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "idx0",
+        "role": "runtime",
+        "type": { "app": [{ "var": "Fin" }, { "var": "n3" }] },
+        "body": {
+          "app": [
+            { "var": "fzero" },
+            { "var": "n3" }
+          ]
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "idx1",
+        "role": "runtime",
+        "type": { "app": [{ "var": "Fin" }, { "var": "n3" }] },
+        "body": {
+          "app": [
+            { "var": "fsucc" },
+            { "var": "n3" },
+            { "app": [
+                { "var": "fzero" },
+                { "var": "n3" }
+            ]}
+          ]
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "main",
+        "role": "runtime",
+        "type": { "app": [{ "var": "IO" }, { "var": "Unit" }] },
+        "body": {
+          "app": [
+            { "var": "bind" },
+            { "array_handle": { "type": { "prim": "String" }, "size": { "var": "n3" } } },
+            { "var": "Unit" },
+            {
+              "app": [
+                { "var": "array_new" },
+                { "prim": "String" },
+                { "var": "n3" },
+                { "string": "init" }
+              ]
+            },
+            {
+              "lambda": {
+                "arg": { "name": "arr", "type": { "array_handle": { "type": { "prim": "String" }, "size": { "var": "n3" } } } },
+                "body": {
+                  "app": [
+                    { "var": "bind" },
+                    { "var": "Unit" },
+                    { "var": "Unit" },
+                    {
+                      "app": [
+                        { "var": "array_set" },
+                        { "prim": "String" },
+                        { "var": "n3" },
+                        { "var": "arr" },
+                        { "var": "idx0" },
+                        { "string": "Hello" }
+                      ]
+                    },
+                    {
+                      "lambda": {
+                        "arg": { "name": "_", "type": { "var": "Unit" } },
+                        "body": {
+                          "app": [
+                            { "var": "bind" },
+                            { "var": "Unit" },
+                            { "var": "Unit" },
+                            {
+                              "app": [
+                                { "var": "array_set" },
+                                { "prim": "String" },
+                                { "var": "n3" },
+                                { "var": "arr" },
+                                { "var": "idx1" },
+                                { "string": "World" }
+                              ]
+                            },
+                            {
+                              "lambda": {
+                                "arg": { "name": "_", "type": { "var": "Unit" } },
+                                "body": {
+                                  "app": [
+                                    { "var": "bind" },
+                                    { "prim": "String" },
+                                    { "var": "Unit" },
+                                    {
+                                      "app": [
+                                        { "var": "array_get" },
+                                        { "prim": "String" },
+                                        { "var": "n3" },
+                                        { "var": "arr" },
+                                        { "var": "idx0" }
+                                      ]
+                                    },
+                                    {
+                                      "lambda": {
+                                        "arg": { "name": "s1", "type": { "prim": "String" } },
+                                        "body": {
+                                          "app": [
+                                            { "var": "bind" },
+                                            { "var": "Unit" },
+                                            { "var": "Unit" },
+                                            {
+                                              "app": [
+                                                { "var": "print_line" },
+                                                { "var": "s1" }
+                                              ]
+                                            },
+                                            {
+                                              "lambda": {
+                                                "arg": { "name": "_", "type": { "var": "Unit" } },
+                                                "body": {
+                                                  "app": [
+                                                    { "var": "bind" },
+                                                    { "prim": "String" },
+                                                    { "var": "Unit" },
+                                                    {
+                                                      "app": [
+                                                        { "var": "array_get" },
+                                                        { "prim": "String" },
+                                                        { "var": "n3" },
+                                                        { "var": "arr" },
+                                                        { "var": "idx1" }
+                                                      ]
+                                                    },
+                                                    {
+                                                      "lambda": {
+                                                        "arg": { "name": "s2", "type": { "prim": "String" } },
+                                                        "body": {
+                                                          "app": [
+                                                            { "var": "bind" },
+                                                            { "var": "Unit" },
+                                                            { "var": "Unit" },
+                                                            {
+                                                              "app": [
+                                                                { "var": "print_line" },
+                                                                { "var": "s2" }
+                                                              ]
+                                                            },
+                                                            {
+                                                              "lambda": {
+                                                                "arg": { "name": "_", "type": { "var": "Unit" } },
+                                                                "body": {
+                                                                  "app": [
+                                                                    { "var": "array_drop" },
+                                                                    { "prim": "String" },
+                                                                    { "var": "n3" },
+                                                                    { "var": "arr" }
+                                                                  ]
+                                                                }
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

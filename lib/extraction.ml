@@ -143,6 +143,8 @@ let rec translate_type (ctx : Context.context) (t : Syntax.term) : c_type =
   match t.desc with
   | PrimType p -> translate_prim_type p
   | Universe _ -> CVoid (* Erased *)
+  | Array _ -> CVoid (* Functional arrays are erased *)
+  | ArrayHandle _ -> CInt64 (* Handles are int64 *)
   | App (f, [arg]) when is_global "IO" f ->
       (* IO A -> A (or void if A is Unit) *)
       translate_type ctx arg

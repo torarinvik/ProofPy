@@ -1,0 +1,17 @@
+{
+  "module": "Std.Fin",
+  "imports": ["Std.Nat"],
+  "declarations": [
+    {
+      "inductive": {
+        "name": "Fin",
+        "params": [{ "name": "n", "type": { "var": "Nat" } }],
+        "universe": "Type",
+        "constructors": [
+          { "name": "fzero", "args": [] },
+          { "name": "fsucc", "args": [{ "name": "i", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } }] }
+        ]
+      }
+    }
+  ]
+}

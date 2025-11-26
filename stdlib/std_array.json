@@ -1,0 +1,101 @@
+{
+  "module": "Std.Array",
+  "imports": ["Std.Nat", "Std.Fin", "Std.IO"],
+  "declarations": [
+    {
+      "repr": {
+        "name": "AnyRepr",
+        "kind": "primitive",
+        "c_type": "void*",
+        "size_bits": 64,
+        "signed": false
+      }
+    },
+    {
+      "extern_io": {
+        "name": "array_new",
+        "c_name": "cj_array_new",
+        "header": "<certijson_io.h>",
+        "args": [
+            { "name": "A", "repr": "AnyRepr" },
+            { "name": "n", "repr": "AnyRepr" },
+            { "name": "v", "repr": "AnyRepr" }
+        ],
+        "result": { "repr": "AnyRepr" },
+        "type": {
+          "forall": { "arg": { "name": "A", "type": { "universe": "Type" } }, "result": {
+          "forall": { "arg": { "name": "n", "type": { "var": "Nat" } }, "result": {
+          "pi": { "arg": { "name": "v", "type": { "var": "A" } }, "result": {
+            "app": [{ "var": "IO" }, { "array_handle": { "type": { "var": "A" }, "size": { "var": "n" } } }]
+          }}}}}}
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "array_get",
+        "c_name": "cj_array_get",
+        "header": "<certijson_io.h>",
+        "args": [
+            { "name": "A", "repr": "AnyRepr" },
+            { "name": "n", "repr": "AnyRepr" },
+            { "name": "h", "repr": "AnyRepr" },
+            { "name": "i", "repr": "AnyRepr" }
+        ],
+        "result": { "repr": "AnyRepr" },
+        "type": {
+          "forall": { "arg": { "name": "A", "type": { "universe": "Type" } }, "result": {
+          "forall": { "arg": { "name": "n", "type": { "var": "Nat" } }, "result": {
+          "pi": { "arg": { "name": "h", "type": { "array_handle": { "type": { "var": "A" }, "size": { "var": "n" } } } }, "result": {
+          "pi": { "arg": { "name": "i", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } }, "result": {
+            "app": [{ "var": "IO" }, { "var": "A" }]
+          }}}}}}}}
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "array_set",
+        "c_name": "cj_array_set",
+        "header": "<certijson_io.h>",
+        "args": [
+            { "name": "A", "repr": "AnyRepr" },
+            { "name": "n", "repr": "AnyRepr" },
+            { "name": "h", "repr": "AnyRepr" },
+            { "name": "i", "repr": "AnyRepr" },
+            { "name": "v", "repr": "AnyRepr" }
+        ],
+        "result": null,
+        "type": {
+          "forall": { "arg": { "name": "A", "type": { "universe": "Type" } }, "result": {
+          "forall": { "arg": { "name": "n", "type": { "var": "Nat" } }, "result": {
+          "pi": { "arg": { "name": "h", "type": { "array_handle": { "type": { "var": "A" }, "size": { "var": "n" } } } }, "result": {
+          "pi": { "arg": { "name": "i", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } }, "result": {
+          "pi": { "arg": { "name": "v", "type": { "var": "A" } }, "result": {
+            "app": [{ "var": "IO" }, { "var": "Unit" }]
+          }}}}}}}}}}
+        }
+      }
+    },
+    {
+      "extern_io": {
+        "name": "array_drop",
+        "c_name": "cj_array_drop",
+        "header": "<certijson_io.h>",
+        "args": [
+            { "name": "A", "repr": "AnyRepr" },
+            { "name": "n", "repr": "AnyRepr" },
+            { "name": "h", "repr": "AnyRepr" }
+        ],
+        "result": null,
+        "type": {
+          "forall": { "arg": { "name": "A", "type": { "universe": "Type" } }, "result": {
+          "forall": { "arg": { "name": "n", "type": { "var": "Nat" } }, "result": {
+          "pi": { "arg": { "name": "h", "type": { "array_handle": { "type": { "var": "A" }, "size": { "var": "n" } } } }, "result": {
+            "app": [{ "var": "IO" }, { "var": "Unit" }]
+          }}}}}}
+        }
+      }
+    }
+  ]
+}

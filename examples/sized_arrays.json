@@ -1,0 +1,60 @@
+{
+  "module": "SizedArrays",
+  "imports": ["Std.Nat"],
+  "declarations": [
+    {
+      "def": {
+        "name": "identity_array",
+        "type": {
+          "pi": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "arr", "type": { "array": { "type": { "var": "Nat" }, "size": { "var": "n" } } } },
+                "result": { "array": { "type": { "var": "Nat" }, "size": { "var": "n" } } }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "arr", "type": { "array": { "type": { "var": "Nat" }, "size": { "var": "n" } } } },
+                "body": { "var": "arr" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "identity_handle",
+        "type": {
+          "pi": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "h", "type": { "array_handle": { "type": { "var": "Nat" }, "size": { "var": "n" } } } },
+                "result": { "array_handle": { "type": { "var": "Nat" }, "size": { "var": "n" } } }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "h", "type": { "array_handle": { "type": { "var": "Nat" }, "size": { "var": "n" } } } },
+                "body": { "var": "h" }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -75,6 +75,8 @@ type term_desc =
   | SubsetIntro of { value : term; proof : term }
   | SubsetElim of term
   | SubsetProof of term
+  | Array of { elem_ty : term; size : term }
+  | ArrayHandle of { elem_ty : term; size : term }
 
 and term = {
   desc : term_desc;
@@ -321,6 +323,10 @@ let rec subst (x : var) (s : term) (t : term) : term =
       with_loc t (SubsetElim (subst x s tm))
   | SubsetProof tm ->
       with_loc t (SubsetProof (subst x s tm))
+  | Array { elem_ty; size } ->
+      with_loc t (Array { elem_ty = subst x s elem_ty; size = subst x s size })
+  | ArrayHandle { elem_ty; size } ->
+      with_loc t (ArrayHandle { elem_ty = subst x s elem_ty; size = subst x s size })
 
 (** [free_vars t] returns the set of free variables in term [t]. *)
 let free_vars (t : term) : var list =
@@ -370,5 +376,9 @@ let free_vars (t : term) : var list =
         go acc tm
     | SubsetProof tm ->
         go acc tm
+    | Array { elem_ty; size } ->
+        go (go acc elem_ty) size
+    | ArrayHandle { elem_ty; size } ->
+        go (go acc elem_ty) size
   in
   S.elements (go S.empty t)

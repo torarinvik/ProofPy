@@ -64,6 +64,10 @@ let rec pp_term fmt (t : term) =
       Format.fprintf fmt "subset_elim(%a)" pp_term tm
   | SubsetProof tm ->
       Format.fprintf fmt "subset_proof(%a)" pp_term tm
+  | Array { elem_ty; size } ->
+      Format.fprintf fmt "(Array %a %a)" pp_term elem_ty pp_term size
+  | ArrayHandle { elem_ty; size } ->
+      Format.fprintf fmt "(ArrayHandle %a %a)" pp_term elem_ty pp_term size
 
 and pp_case fmt { pattern; body; _ } =
   Format.fprintf fmt "| %s(%a) => %a"
