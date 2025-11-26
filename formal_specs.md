@@ -104,6 +104,11 @@ Traditional programming languages trust the programmer. When an LLM writes code,
 20. [Meta-Theoretic Goals](#20-meta-theoretic-goals)
 21. [Correctness Levels and Verification Modes](#21-correctness-levels-and-verification-modes)
 
+### Part V: Advanced Verification
+22. [Refinement Types](#22-refinement-types)
+23. [Ghost Parameters](#23-ghost-parameters)
+24. [Sized Arrays](#24-sized-arrays)
+
 ### Appendices
 - [A: JSON Examples](#appendix-a-json-examples)
 - [B: Version History](#appendix-b-version-history)
@@ -1751,6 +1756,163 @@ This design allows CertiJSON to be:
 * **Fast enough** for interactive, LLM-driven development at low levels, and
 * **As rigorous as a full proof assistant** for critical components at high levels,
   without compromising the soundness of the core type theory at any level.
+
+---
+
+## Part V: Advanced Verification
+
+### 22. Refinement Types
+
+Refinement types (also known as Subset types) allow restricting a type `A` by a predicate `P : A → Prop`. A value of type `{x : A | P x}` consists of a value `v : A` and a proof that `P v` holds.
+
+#### 22.1 Abstract Syntax
+
+```
+t ::= ...
+    | {x : A | P}                (subset type)
+    | subset_intro(u, p)         (introduction)
+    | subset_elim(t)             (elimination - value)
+    | subset_proof(t)            (elimination - proof)
+```
+
+#### 22.2 JSON Syntax
+
+**Subset Type:**
+```json
+{
+  "subset": {
+    "arg": { "name": "x", "type": <type_term> },
+    "pred": <prop_term>
+  }
+}
+```
+
+**Introduction:**
+```json
+{
+  "subset_intro": {
+    "value": <term>,
+    "proof": <proof_term>
+  }
+}
+```
+
+**Elimination (Value):**
+```json
+{ "subset_elim": <term> }
+```
+*Note: In runtime code, `subset_elim` is a no-op (erased).*
+
+#### 22.3 Typing Rules
+
+**Formation:**
+```
+Σ; Γ ⊢ A : Type    Σ; Γ, x : A ⊢ P : Prop
+──────────────────────────────────────────
+Σ; Γ ⊢ {x : A | P} : Type
+```
+
+**Introduction:**
+```
+Σ; Γ ⊢ u : A    Σ; Γ ⊢ p : P[x := u]
+────────────────────────────────────
+Σ; Γ ⊢ subset_intro(u, p) : {x : A | P}
+```
+
+**Elimination:**
+```
+Σ; Γ ⊢ t : {x : A | P}
+──────────────────────
+Σ; Γ ⊢ subset_elim(t) : A
+```
+
+#### 22.4 Erasure
+
+Refinement types erase to their underlying type.
+- `erase({x : A | P})` = `erase(A)`
+- `erase(subset_intro(u, p))` = `erase(u)`
+- `erase(subset_elim(t))` = `erase(t)`
+
+---
+
+### 23. Ghost Parameters
+
+Ghost parameters are function arguments used solely for verification. They are marked as `proof-only` and are erased during compilation, incurring no runtime cost.
+
+#### 23.1 Syntax
+
+In `def` or `lambda`, an argument can have a `role`:
+
+```json
+{
+  "lambda": {
+    "arg": {
+      "name": "h",
+      "type": <type>,
+      "role": "proof-only"
+    },
+    "body": ...
+  }
+}
+```
+
+#### 23.2 Usage
+
+Ghost parameters can be used in:
+- Types of subsequent arguments
+- Proofs
+- Other ghost arguments
+
+They **cannot** be used in:
+- Runtime computations (unless inside a `proof-only` block)
+
+#### 23.3 Erasure
+
+- Lambda abstractions with `proof-only` arguments are erased: `λ(x:A). t` → `t` (if x is ghost).
+- Applications to ghost arguments are erased: `f x` → `f` (if x is ghost).
+
+---
+
+### 24. Sized Arrays
+
+Sized arrays extend the mutable array primitives with type-level size information, enabling safe, bounds-checked access without runtime overhead (when proofs are static).
+
+#### 24.1 Types
+
+```
+Array A n : Type        -- Array of type A with size n (n : Nat)
+ArrayHandle A n : Type  -- Linear capability for Array A n
+```
+
+#### 24.2 Primitives
+
+```
+array_new : ∀(A : Type)(n : Nat), IO (Array A n × ArrayHandle A n)
+
+array_get : ∀(A : Type)(n : Nat),
+            ArrayHandle A n →
+            ∀(i : Nat),
+            (i < n) →           -- Proof that index is in bounds
+            IO (A × ArrayHandle A n)
+
+array_set : ∀(A : Type)(n : Nat),
+            ArrayHandle A n →
+            ∀(i : Nat),
+            (i < n) →           -- Proof that index is in bounds
+            A →
+            IO (ArrayHandle A n)
+```
+
+#### 24.3 Doom Use Case
+
+```json
+// Framebuffer definition
+{ "def": {
+    "name": "put_pixel",
+    "type": "forall (w h : Nat). ArrayHandle Color (w * h) -> forall (x y : Nat). (x < w) -> (y < h) -> Color -> IO ...",
+    ...
+}}
+```
 
 ---
 
