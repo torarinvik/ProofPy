@@ -1,4 +1,4 @@
-# CertiJSON
+# ProofPy
 
 **A proof-based programming language for agentic LLMs**
 
@@ -7,17 +7,19 @@
 
 ---
 
-## What is CertiJSON?
+## What is ProofPy?
 
-CertiJSON is a pure, total, dependently typed programming language designed **exclusively for use by AI coding agents**. It solves a fundamental problem in AI-assisted software development:
+ProofPy is a pure, total, dependently typed programming language designed **exclusively for use by AI coding agents**. It solves a fundamental problem in AI-assisted software development:
 
 > **LLMs can generate code, but they cannot guarantee its correctness.**
 
-CertiJSON shifts the burden of correctness from the code generator (the LLM) to the code verifier (the kernel). An LLM can propose any code it wants; if it's wrong, the kernel rejects it. If a CertiJSON module compiles, its theorems are mathematically valid and its runtime code is guaranteed to terminate without undefined behavior.
+ProofPy shifts the burden of correctness from the code generator (the LLM) to the code verifier (the kernel). An LLM can propose any code it wants; if it's wrong, the kernel rejects it. If a ProofPy module compiles, its theorems are mathematically valid and its runtime code is guaranteed to terminate without undefined behavior.
+
+ProofPy compiles to **CertiJSON**, a JSON-based Intermediate Representation (IR) that serves as the backend language.
 
 ## ProofPy Syntax
 
-CertiJSON features a Python-like frontend syntax ("ProofPy") designed to be familiar and easy for LLMs to write, while compiling down to the core JSON IR.
+ProofPy features a Python-like frontend syntax designed to be familiar and easy for LLMs to write, while compiling down to the core CertiJSON IR.
 
 ### Features
 
@@ -67,7 +69,7 @@ def max(x: Int32, y: Int32) -> Int32:
 
 ## JSON Intermediate Representation (IR)
 
-While agents write in ProofPy, the compiler uses a JSON-based Intermediate Representation. This IR is unambiguous and easy for tools to process.
+While agents write in ProofPy, the compiler uses **CertiJSON**, a JSON-based Intermediate Representation. This IR is unambiguous and easy for tools to process.
 
 ### Example IR (Addition)
 
@@ -154,7 +156,7 @@ While agents write in ProofPy, the compiler uses a JSON-based Intermediate Repre
 
 ## Type System
 
-CertiJSON features a dependently typed core with:
+ProofPy features a dependently typed core with:
 
 - **Two universes**: `Type` (computational) and `Prop` (logical)
 - **Dependent functions**: `Π(x : A). B`
@@ -164,7 +166,7 @@ CertiJSON features a dependently typed core with:
 
 ## C Interoperability
 
-CertiJSON provides safe FFI through explicit representation descriptors:
+ProofPy provides safe FFI through explicit representation descriptors:
 
 ```json
 {
@@ -218,7 +220,7 @@ CertiJSON provides safe FFI through explicit representation descriptors:
 
 ## Status
 
-CertiJSON is currently in **alpha** stage. The specification is stable, but the reference implementation is under development.
+ProofPy is currently in **alpha** stage. The specification is stable, but the reference implementation is under development.
 
 ### Roadmap
 
@@ -249,7 +251,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-CertiJSON draws inspiration from:
+ProofPy draws inspiration from:
 
 - [Coq](https://coq.inria.fr/) — Dependent types and proof assistants
 - [Lean](https://leanprover.github.io/) — Modern proof assistant design
