@@ -50,7 +50,7 @@ let rec infer_universe (ctx : context) (t : term) : universe option =
   | PrimType _ -> Some Type
   | Pi { arg; result } ->
       let _ = infer_universe ctx arg.ty in
-      let ctx' = extend ctx arg.name arg.ty in
+      let ctx' = extend ctx arg.name ~role:arg.role arg.ty in
       infer_universe ctx' result
   | Subset { arg; pred = _ } ->
       let _ = infer_universe ctx arg.ty in
@@ -214,11 +214,11 @@ and conv_whnf (ctx : context) (t1 : term) (t2 : term) : bool =
   | Global n1, Global n2 -> String.equal n1 n2
   | Pi { arg = a1; result = r1 }, Pi { arg = a2; result = r2 } ->
       conv ctx a1.ty a2.ty &&
-      let ctx' = extend ctx a1.name a1.ty in
+      let ctx' = extend ctx a1.name ~role:a1.role a1.ty in
       conv ctx' r1 (subst a2.name (mk ?loc:a1.b_loc (Var a1.name)) r2)
   | Lambda { arg = a1; body = b1 }, Lambda { arg = a2; body = b2 } ->
       conv ctx a1.ty a2.ty &&
-      let ctx' = extend ctx a1.name a1.ty in
+      let ctx' = extend ctx a1.name ~role:a1.role a1.ty in
       conv ctx' b1 (subst a2.name (mk ?loc:a1.b_loc (Var a1.name)) b2)
   | App (f1, args1), App (f2, args2) ->
       conv ctx f1 f2 &&
@@ -263,7 +263,7 @@ and conv_whnf (ctx : context) (t1 : term) (t2 : term) : bool =
       ) c1 c2
   | Subset { arg = a1; pred = p1 }, Subset { arg = a2; pred = p2 } ->
       conv ctx a1.ty a2.ty &&
-      let ctx' = extend ctx a1.name a1.ty in
+      let ctx' = extend ctx a1.name ~role:a1.role a1.ty in
       conv ctx' p1 (subst a2.name (mk ?loc:a1.b_loc (Var a1.name)) p2)
   | SubsetIntro { value = v1; proof = p1 }, SubsetIntro { value = v2; proof = p2 } ->
       conv ctx v1 v2 && conv ctx p1 p2
@@ -455,7 +455,10 @@ let rec infer (ctx : context) (t : term) : term =
   match t.desc with
   | Var x -> (
       match lookup ctx x with
-      | Some (`Local ty) -> ty
+      | Some (`Local (ty, role)) ->
+          if ctx.mode = Runtime && role = ProofOnly then
+             raise (TypeError (RoleMismatch (x, Runtime, ProofOnly)));
+          ty
       | Some (`Global (GDefinition def)) -> def.def_type
       | Some (`Global (GTheorem thm)) -> thm.thm_type
       | Some (`Global (GInductive ind)) -> inductive_type ind
@@ -481,7 +484,7 @@ let rec infer (ctx : context) (t : term) : term =
       (match arg_kind.desc with
       | Universe _ -> ()
       | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
-      let ctx' = extend ctx arg.name arg.ty in
+      let ctx' = extend ctx arg.name ~role:arg.role arg.ty in
       let result_ty = infer ctx' result in
       (match result_ty with
       | { desc = Universe u; _ } -> mk ?loc:t.loc (Universe u)
@@ -491,7 +494,7 @@ let rec infer (ctx : context) (t : term) : term =
       (match arg_kind.desc with
       | Universe _ -> ()
       | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
-      let ctx' = extend ctx arg.name arg.ty in
+      let ctx' = extend ctx arg.name ~role:arg.role arg.ty in
       let body_ty = infer ctx' body in
       mk ?loc:t.loc (Pi { arg; result = body_ty })
   | App (f, args) ->
@@ -500,7 +503,9 @@ let rec infer (ctx : context) (t : term) : term =
           let f_ty' = whnf ctx f_ty in
           match f_ty'.desc with
           | Pi { arg = param; result } ->
-              let _ = check ctx arg param.ty in
+              let arg_mode = if param.role = ProofOnly then ProofOnly else ctx.mode in
+              let ctx_arg = set_mode ctx arg_mode in
+              let _ = check ctx_arg arg param.ty in
               subst param.name arg result
           | _ -> raise (TypeError (NotAFunction (f_ty', f_ty'.loc))))
         (infer ctx f) args
@@ -650,8 +655,9 @@ let rec infer (ctx : context) (t : term) : term =
       (match arg_kind.desc with
       | Universe _ -> ()
       | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
-      let ctx' = extend ctx arg.name arg.ty in
-      let pred_ty = infer ctx' pred in
+      let ctx' = extend ctx arg.name ~role:arg.role arg.ty in
+      let ctx_pred = set_mode ctx' ProofOnly in
+      let pred_ty = infer ctx_pred pred in
       (match pred_ty.desc with
       | Universe Prop -> ()
       | _ -> raise (TypeError (NotAProp (pred, pred.loc))));
@@ -698,7 +704,8 @@ and check (ctx : context) (t : term) (expected : term) : unit =
       | Subset { arg; pred } ->
           check ctx value arg.ty;
           let pred_inst = subst arg.name value pred in
-          check ctx proof pred_inst
+          let ctx_proof = set_mode ctx ProofOnly in
+          check ctx_proof proof pred_inst
       | _ ->
           let actual = infer ctx t in
           if not (conv ctx actual expected) then
@@ -720,7 +727,7 @@ and check (ctx : context) (t : term) (expected : term) : unit =
              raise (TypeError (TypeMismatch { expected = expected_arg.ty; actual = arg.ty; context = "lambda argument type"; loc = arg.ty.loc }));
           if arg.role <> expected_arg.role then
              raise (TypeError (RoleMismatch (arg.name, expected_arg.role, arg.role)));
-          let ctx' = extend ctx arg.name arg.ty in
+          let ctx' = extend ctx arg.name ~role:arg.role arg.ty in
           let expected_body_ty = subst expected_arg.name (mk (Var arg.name)) expected_result in
           check ctx' body expected_body_ty
       | _ ->
@@ -1022,7 +1029,7 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
             (match p_kind.desc with
             | Universe _ -> ()
             | _ -> raise (TypeError (NotAType (p.ty, p.ty.loc))));
-            extend c p.name p.ty)
+            extend c p.name ~role:p.role p.ty)
           ctx ind.params
       in
       (* Check constructor types (simplified - full check needs positivity) *)
@@ -1034,7 +1041,7 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
               (match arg_kind.desc with
               | Universe _ -> ()
               | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
-              extend c arg.name arg.ty)
+              extend c arg.name ~role:arg.role arg.ty)
             ctx' ctor.ctor_args
           in ())
         ind.constructors;
@@ -1053,12 +1060,14 @@ let check_declaration (ctx : context) (decl : declaration) : unit =
         (match type_kind.desc with
         | Universe _ -> ()
         | _ -> raise (TypeError (NotAType (def.def_type, def.def_type.loc))));
-        check ctx def.def_body def.def_type;
+        let body_ctx = set_mode ctx def.def_role in
+        check body_ctx def.def_body def.def_type;
         if def.def_role <> Runtime then check_termination def)
   | Theorem thm ->
       with_decl thm.thm_name thm.thm_loc (fun () ->
         let _ = check ctx thm.thm_type (mk ?loc:thm.thm_loc (Universe Prop)) in
-        check ctx thm.thm_proof thm.thm_type)
+        let proof_ctx = set_mode ctx ProofOnly in
+        check proof_ctx thm.thm_proof thm.thm_type)
   | Repr repr ->
       with_decl repr.repr_name repr.repr_loc (fun () -> check_repr ctx repr)
   | ExternC ext ->

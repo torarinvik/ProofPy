@@ -11,6 +11,7 @@ open Syntax
 type local_entry = {
   var_name : name;
   var_type : term;
+  var_role : role;
 }
 
 (** Local typing context Γ. *)
@@ -20,13 +21,13 @@ type local_ctx = local_entry list
 let empty_local : local_ctx = []
 
 (** Add a binding to the local context. *)
-let extend_local (ctx : local_ctx) (x : name) (ty : term) : local_ctx =
-  { var_name = x; var_type = ty } :: ctx
+let extend_local (ctx : local_ctx) (x : name) (ty : term) (r : role) : local_ctx =
+  { var_name = x; var_type = ty; var_role = r } :: ctx
 
 (** Lookup a variable in the local context. *)
-let lookup_local (ctx : local_ctx) (x : name) : term option =
+let lookup_local (ctx : local_ctx) (x : name) : (term * role) option =
   match List.find_opt (fun e -> String.equal e.var_name x) ctx with
-  | Some e -> Some e.var_type
+  | Some e -> Some (e.var_type, e.var_role)
   | None -> None
 
 (** {1 Global Signature} *)
@@ -84,22 +85,28 @@ let merge_signatures (sig1 : signature) (sig2 : signature) : signature =
 type context = {
   local : local_ctx;
   global : signature;
+  mode : role;
 }
 
 (** Create a context with empty local and given signature. *)
 let make_ctx (sig_ : signature) : context = {
   local = empty_local;
   global = sig_;
+  mode = Runtime;
 }
 
+(** Set the current checking mode. *)
+let set_mode (ctx : context) (r : role) : context =
+  { ctx with mode = r }
+
 (** Extend the local context. *)
-let extend (ctx : context) (x : name) (ty : term) : context =
-  { ctx with local = extend_local ctx.local x ty }
+let extend (ctx : context) (x : name) ?(role = Runtime) (ty : term) : context =
+  { ctx with local = extend_local ctx.local x ty role }
 
 (** Lookup a name (tries local first, then global). *)
-let lookup (ctx : context) (x : name) : [`Local of term | `Global of global_entry] option =
+let lookup (ctx : context) (x : name) : [`Local of term * role | `Global of global_entry] option =
   match lookup_local ctx.local x with
-  | Some ty -> Some (`Local ty)
+  | Some (ty, role) -> Some (`Local (ty, role))
   | None ->
       match lookup_sig ctx.global x with
       | Some entry -> Some (`Global entry)

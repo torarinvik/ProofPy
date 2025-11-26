@@ -1,3 +1,4 @@
 (tests
- (names test_parser test_typing)
+ (names test_parser test_typing test_refinement test_ghost)
  (libraries certijson alcotest))
+
