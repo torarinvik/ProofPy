@@ -215,9 +215,20 @@ let rec translate_type (ctx : Context.context) (t : Syntax.term) : c_type =
       else
         CVoid (* Fallback *)
   | Global "Unit" | Var "Unit" -> CVoid
+  | Subset { arg; _ } -> translate_type ctx arg.ty (* Refinement types extract to base type *)
   | Global name | Var name -> 
       (match Context.lookup ctx name with
        | Some (`Global (GRepr _)) -> translate_repr ctx name
+       | Some (`Global (GDefinition def)) ->
+           (* Check if this is a refinement type definition (nullary function returning Type) *)
+           (match def.def_type.desc with
+            | Universe Type ->
+                (* This is a type alias/refinement - look at the body *)
+                let body = def.def_body in
+                (match body.desc with
+                 | Subset { arg; _ } -> translate_type ctx arg.ty
+                 | _ -> translate_type ctx body)
+            | _ -> CUserType name)
        | _ -> CUserType name)
   | _ -> CVoid (* Fallback *)
 
@@ -507,7 +518,9 @@ let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option 
                     let ty = translate_type ctx binder.ty in
                     let arg_expr = translate_term ctx env arg in
                     let decl = 
-                      if ty = CVoid then []
+                      if ty = CVoid then 
+                        (* For void/Unit types, still execute the expression for side effects *)
+                        [CExpr arg_expr]
                       else [CDecl (ty, var_name, Some arg_expr)]
                     in
                     let body_stmts = translate_io ctx env' body res_var ret_ty in

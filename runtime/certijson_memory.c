@@ -1,4 +1,5 @@
 #include "certijson_memory.h"
+#include <stdio.h>
 
 uintptr_t cj_ptr_to_uintptr(const void* p) {
     return (uintptr_t)p;
@@ -17,6 +18,7 @@ int32_t cj_load_int32(const void* p) {
 }
 
 int32_t cj_store_int32(void* p, int32_t v) {
+    fprintf(stderr, "DEBUG: cj_store_int32 writing %d to %p\n", v, p);
     *(int32_t*)p = v;
     return v;
 }

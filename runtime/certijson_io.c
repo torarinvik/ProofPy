@@ -1,5 +1,6 @@
 #include "certijson_io.h"
 #include <string.h>
+#include <stdbool.h>
 
 void cj_print_line(const char* s) {
     printf("%s\n", s);
@@ -7,6 +8,16 @@ void cj_print_line(const char* s) {
 
 void cj_print(const char* s) {
     printf("%s", s);
+}
+
+void cj_debug_int(const char* label, int32_t value) {
+    printf("[DEBUG] %s: %d\n", label, value);
+    fflush(stdout);
+}
+
+void cj_debug_bool(const char* label, bool value) {
+    printf("[DEBUG] %s: %s\n", label, value ? "true" : "false");
+    fflush(stdout);
 }
 
 char* cj_read_line() {

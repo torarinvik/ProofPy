@@ -67,7 +67,7 @@ def in_bounds(x: Int32, y: Int32) -> Bool:
     return (x >= 0) and (x < 10) and (y >= 0) and (y < 20)
 
 # Safe rotation normalization (always returns 0-3)
-def normalize_rotation(r: Int32) -> Int32:
+def normalize_rotation(r: Int32) -> Rotation:
     raw : Int32 = r % 4
     if raw < 0:
         return raw + 4
@@ -509,10 +509,7 @@ def get_offset_y(ptype: Int32, rot: Int32, idx: Int32) -> Int32:
 # COLLISION DETECTION (Using Safe Memory Access)
 # =============================================================================
 
-# Collision check for a single block
-# Returns: 1 if collision detected, 0 if position is valid
-# Uses safe_grid_read for bounds-checked memory access
-def check_block_bounds(view: VoidPtr, px: Int32, py: Int32, pt: Int32, pr: Int32, idx: Int32) -> Int32:
+def check_block_bounds(view: VoidPtr, px: GridX, py: Int32, pt: PieceType, pr: Rotation, idx: BlockIndex) -> Int32:
     bx : Int32 = px + get_offset_x(pt, pr, idx)
     by : Int32 = py + get_offset_y(pt, pr, idx)
     
@@ -531,9 +528,42 @@ def check_block_bounds(view: VoidPtr, px: Int32, py: Int32, pt: Int32, pr: Int32
             else:
                 0
 
+# Logical predicate: a block is "standing" on something solid (bottom or occupied cell below)
+def is_block_supported(view: VoidPtr, bx: Int32, by: Int32) -> Bool:
+    # Below bottom of screen is not allowed
+    if by < 0:
+        False
+    else:
+        if by == 19:
+            True
+        else:
+            # Safe read; for by in [0,18], by+1 is still in [0,19]
+            below : Int32 = safe_grid_read(view, bx, by + 1)
+            return below != 0
+
+# Proof-style helper: when a piece can no longer move down, at least one block is supported
+def assert_landing_reason(grid: Int64, px: Int32, py: Int32, pt: Int32, pr: Int32, idx: Int32, found: Bool) -> Bool:
+    view : VoidPtr = Std.Memory.int64_to_ptr(grid)
+    if idx >= 4:
+        # Postcondition: some block is supported
+        found
+    else:
+        bx : Int32 = px + get_offset_x(pt, pr, idx)
+        by : Int32 = py + get_offset_y(pt, pr, idx)
+        this_supported : Bool = is_block_supported(view, bx, by)
+        assert_landing_reason(grid, px, py, pt, pr, idx + 1, found or this_supported)
+
+# Proof check: verify landing reason and fail visibly if invalid
+def check_landing_proof(grid: Int64, landing_ok: Bool) -> Unit:
+    if landing_ok:
+        tt
+    else:
+        view_fail : VoidPtr = Std.Memory.int64_to_ptr(grid)
+        safe_grid_write(view_fail, 0, 0, 0 - 3)
+
 # Check all 4 blocks of a piece for collision
 # Returns: 0 if all positions valid, >0 if any collision
-def check_bounds(grid: Int64, px: Int32, py: Int32, pt: Int32, pr: Int32) -> Int32:
+def check_bounds(grid: Int64, px: GridX, py: Int32, pt: PieceType, pr: Rotation) -> Int32:
     view : VoidPtr = Std.Memory.int64_to_ptr(grid)
     c0 : Int32 = check_block_bounds(view, px, py, pt, pr, 0)
     c1 : Int32 = check_block_bounds(view, px, py, pt, pr, 1)
@@ -571,12 +601,12 @@ def get_color_hex(c: Int32) -> Int32:
 def draw_block(x: Int32, y: Int32, c: Int32) -> IO(Unit):
     DrawRectangle(x * 30, y * 30, 28, 28, GetColor(get_color_hex(c)))
 
-def draw_piece_block(px: Int32, py: Int32, pt: Int32, pr: Int32, idx: Int32) -> IO(Unit):
+def draw_piece_block(px: GridX, py: Int32, pt: PieceType, pr: Rotation, idx: BlockIndex) -> IO(Unit):
     bx : Int32 = px + get_offset_x(pt, pr, idx)
     by : Int32 = py + get_offset_y(pt, pr, idx)
     draw_block(bx, by, pt)
 
-def draw_piece(px: Int32, py: Int32, pt: Int32, pr: Int32) -> IO(Unit):
+def draw_piece(px: GridX, py: Int32, pt: PieceType, pr: Rotation) -> IO(Unit):
     draw_piece_block(px, py, pt, pr, 0)
     draw_piece_block(px, py, pt, pr, 1)
     draw_piece_block(px, py, pt, pr, 2)
@@ -589,11 +619,37 @@ def draw_piece(px: Int32, py: Int32, pt: Int32, pr: Int32) -> IO(Unit):
 
 # Lock a single block of a piece into the grid
 # Uses safe_grid_write for bounds-checked memory access
-def lock_block(view: VoidPtr, px: Int32, py: Int32, pt: Int32, pr: Int32, idx: Int32) -> Unit:
+def lock_block(view: VoidPtr, px: GridX, py: Int32, pt: PieceType, pr: Rotation, idx: BlockIndex) -> Unit:
     bx : Int32 = px + get_offset_x(pt, pr, idx)
     by : Int32 = py + get_offset_y(pt, pr, idx)
     # safe_grid_write handles bounds checking internally
     _ : Unit = safe_grid_write(view, bx, by, pt)
+
+# Proof-style block checker: after locking, the block must be on-grid and equal to pt
+def assert_block_locked(view: VoidPtr, px: GridX, py: Int32, pt: PieceType, pr: Rotation, idx: BlockIndex) -> Unit:
+    bx : Int32 = px + get_offset_x(pt, pr, idx)
+    by : Int32 = py + get_offset_y(pt, pr, idx)
+
+    # Invariant: all locked blocks are inside the visible grid
+    inb : Bool = in_bounds(bx, by)
+    if inb:
+        cell : Int32 = safe_grid_read(view, bx, by)
+        correct : Bool = (cell == pt)
+        if correct:
+            tt
+        else:
+            _ : Unit = safe_grid_write(view, 0, 0, 0 - 2)
+    else:
+        # Force a detectable failure by writing an impossible value
+        _ : Unit = safe_grid_write(view, 0, 0, 0 - 1)
+
+# Proof-style piece checker: all four blocks are properly locked
+def assert_piece_locked_on_grid(grid: Int64, px: GridX, py: Int32, pt: PieceType, pr: Rotation) -> Unit:
+    view : VoidPtr = Std.Memory.int64_to_ptr(grid)
+    _ : Unit = assert_block_locked(view, px, py, pt, pr, 0)
+    _ : Unit = assert_block_locked(view, px, py, pt, pr, 1)
+    _ : Unit = assert_block_locked(view, px, py, pt, pr, 2)
+    _ : Unit = assert_block_locked(view, px, py, pt, pr, 3)
 
 # =============================================================================
 # LINE CLEARING (Using Safe Memory Access + Recursion)
@@ -646,7 +702,7 @@ def check_lines_rec(view: VoidPtr, y: Int32) -> Unit:
             check_lines_rec(view, y - 1)
 
 # Lock entire piece into grid and check for completed lines
-def lock_piece(grid: Int64, px: Int32, py: Int32, pt: Int32, pr: Int32) -> Unit:
+def lock_piece(grid: Int64, px: GridX, py: Int32, pt: PieceType, pr: Rotation) -> Unit:
     view : VoidPtr = Std.Memory.int64_to_ptr(grid)
     _ : Unit = lock_block(view, px, py, pt, pr, 0)
     _ : Unit = lock_block(view, px, py, pt, pr, 1)
@@ -654,6 +710,8 @@ def lock_piece(grid: Int64, px: Int32, py: Int32, pt: Int32, pr: Int32) -> Unit:
     _ : Unit = lock_block(view, px, py, pt, pr, 3)
     
     _ : Unit = check_lines_rec(view, 19)
+    # Postcondition proof: the locked piece obeys the grid invariant
+    _ : Unit = assert_piece_locked_on_grid(grid, px, py, pt, pr)
 
 # =============================================================================
 # GRID RENDERING (Recursive with Bounds)
@@ -668,7 +726,7 @@ def draw_cell(view: VoidPtr, i: Int32) -> IO(Unit):
     if cell != 0:
         draw_block(x, y, cell)
     else:
-        return Std.IO.return(Unit, tt)
+        Std.IO.return(Unit, tt)
 
 def draw_grid_rec(view: VoidPtr, i: Int32) -> IO(Unit):
     if i < 200:
@@ -686,7 +744,7 @@ def draw_grid(grid: Int64) -> IO(Unit):
 # =============================================================================
 # Linear Congruential Generator for piece selection
 # Postcondition: 1 <= result <= 7 (valid piece type)
-def random_piece(seed: Int32) -> Int32:
+def random_piece(seed: Int32) -> PieceType:
     s : Int32 = seed % 7
     pos_s : Int32 = s if (s >= 0) else (0 - s)
     return pos_s + 1
@@ -702,7 +760,7 @@ def random_piece(seed: Int32) -> Int32:
 # - pr is always a valid rotation (0-3)
 # - Grid accesses are bounds-checked via safe_grid_read/write
 
-def game_loop(grid: Int64, px: Int32, py: Int32, pt: Int32, pr: Int32, timer: Int32, seed: Int32, game_over: Bool) -> IO(Unit):
+def game_loop(grid: Int64, px: GridX, py: Int32, pt: PieceType, pr: Rotation, timer: Int32, seed: Int32, game_over: Bool) -> IO(Unit):
     should_close : Bool <- WindowShouldClose(tt)
     if should_close:
         Std.IO.return(Unit, tt)
@@ -723,14 +781,14 @@ def game_loop(grid: Int64, px: Int32, py: Int32, pt: Int32, pr: Int32, timer: In
             
             # Horizontal movement with collision check
             dx : Int32 = (0 - 1) if key_left else (1 if key_right else 0)
-            
-            new_px : Int32 = px + dx
-            final_px : Int32 = new_px if (check_bounds(grid, new_px, py, pt, pr) == 0) else px
+    
+            new_px : GridX = px + dx
+            final_px : GridX = new_px if (check_bounds(grid, new_px, py, pt, pr) == 0) else px
             
             # Rotation with collision check
             # normalize_rotation ensures result is in [0,4)
-            new_pr : Int32 = normalize_rotation(pr + 1)
-            final_pr : Int32 = new_pr if (key_up and (check_bounds(grid, final_px, py, pt, new_pr) == 0)) else pr
+            new_pr : Rotation = normalize_rotation(pr + 1)
+            final_pr : Rotation = new_pr if (key_up and (check_bounds(grid, final_px, py, pt, new_pr) == 0)) else pr
             
             # Vertical movement (Gravity)
             drop_rate : Int32 = 5 if key_down else 30
@@ -739,7 +797,15 @@ def game_loop(grid: Int64, px: Int32, py: Int32, pt: Int32, pr: Int32, timer: In
             
             if should_drop:
                 new_py : Int32 = py + 1
-                if check_bounds(grid, final_px, new_py, pt, final_pr) == 0:
+                
+                # DEBUG: Print drop attempt info
+                Std.IO.print_line("=== DROP ATTEMPT ===")
+                
+                # Check if we can move down
+                collision : Int32 = check_bounds(grid, final_px, new_py, pt, final_pr)
+                
+                if collision == 0:
+                    Std.IO.print_line("-> Moving down (no collision)")
                     # Drawing
                     BeginDrawing(tt)
                     ClearBackground(GetColor(255))
@@ -748,7 +814,21 @@ def game_loop(grid: Int64, px: Int32, py: Int32, pt: Int32, pr: Int32, timer: In
                     EndDrawing(tt)
                     game_loop(grid, final_px, new_py, pt, final_pr, timer + 1, seed, game_over)
                 else:
+                    Std.IO.print_line("-> COLLISION DETECTED - LOCKING PIECE")
+                    
+                    # Proof obligation: we can no longer move down, so some block must be supported
+                    landing_ok : Bool = assert_landing_reason(grid, final_px, py, pt, final_pr, 0, False)
+                    # Print landing_ok as 0/1 (no inline if expressions)
+                    if landing_ok:
+                        Std.IO.print_line("landing_ok = True")
+                    else:
+                        Std.IO.print_line("landing_ok = False")
+                    
+                    # If landing_ok is False, a logic error occurred; trigger a visible failure
+                    check_result : Unit = check_landing_proof(grid, landing_ok)
+
                     # Lock piece
+                    Std.IO.print_line("Calling lock_piece...")
                     _ : Unit = lock_piece(grid, final_px, py, pt, final_pr)
                     
                     # Spawn new piece (random_piece guarantees 1 <= result <= 7)
@@ -801,10 +881,10 @@ def main() -> IO(Unit):
     # py: piece y position (top of grid)  
     # pt: piece type (1-7, from random_piece)
     # pr: piece rotation (0-3)
-    px : Int32 = 4
+    px : GridX = 4
     py : Int32 = 0
-    pt : Int32 = random_piece(42)  # Guaranteed: 1 <= pt <= 7
-    pr : Int32 = 0                  # Guaranteed: 0 <= pr < 4
+    pt : PieceType = random_piece(42)  # Guaranteed: 1 <= pt <= 7
+    pr : Rotation = 0                  # Guaranteed: 0 <= pr < 4
     timer : Int32 = 0
     seed : Int32 = 42
     game_over : Bool = False
