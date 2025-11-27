@@ -1,0 +1,118 @@
+{
+  "module": "Std.Relation",
+  "imports": [],
+  "declarations": [
+    {
+      "inductive": {
+        "name": "ReflTransClosure",
+        "params": [
+          { "name": "A", "type": { "universe": "Type" } },
+          { "name": "R", "type": { 
+            "pi": {
+              "arg": { "name": "_", "type": { "var": "A" } },
+              "result": {
+                "pi": {
+                  "arg": { "name": "_", "type": { "var": "A" } },
+                  "result": { "universe": "Prop" }
+                }
+              }
+            }
+          }},
+          { "name": "x", "type": { "var": "A" } },
+          { "name": "y", "type": { "var": "A" } }
+        ],
+        "universe": "Prop",
+        "constructors": [
+          { 
+            "name": "RTC.refl", 
+            "args": [
+              { "name": "eq", "type": { "eq": { "type": { "var": "A" }, "lhs": { "var": "x" }, "rhs": { "var": "y" } } } }
+            ] 
+          },
+          { 
+            "name": "RTC.step", 
+            "args": [
+              { "name": "z", "type": { "var": "A" } },
+              { "name": "hr", "type": { "app": [{ "var": "R" }, { "var": "x" }, { "var": "z" }] } },
+              { "name": "htl", "type": { "app": [{ "var": "ReflTransClosure" }, { "var": "A" }, { "var": "R" }, { "var": "z" }, { "var": "y" }] } }
+            ] 
+          }
+        ]
+      }
+    },
+    {
+      "inductive": {
+        "name": "TransClosure",
+        "params": [
+          { "name": "A", "type": { "universe": "Type" } },
+          { "name": "R", "type": { 
+            "pi": {
+              "arg": { "name": "_", "type": { "var": "A" } },
+              "result": {
+                "pi": {
+                  "arg": { "name": "_", "type": { "var": "A" } },
+                  "result": { "universe": "Prop" }
+                }
+              }
+            }
+          }},
+          { "name": "x", "type": { "var": "A" } },
+          { "name": "y", "type": { "var": "A" } }
+        ],
+        "universe": "Prop",
+        "constructors": [
+          { 
+            "name": "TC.base", 
+            "args": [
+              { "name": "hr", "type": { "app": [{ "var": "R" }, { "var": "x" }, { "var": "y" }] } }
+            ] 
+          },
+          { 
+            "name": "TC.step", 
+            "args": [
+              { "name": "z", "type": { "var": "A" } },
+              { "name": "hr", "type": { "app": [{ "var": "R" }, { "var": "x" }, { "var": "z" }] } },
+              { "name": "htl", "type": { "app": [{ "var": "TransClosure" }, { "var": "A" }, { "var": "R" }, { "var": "z" }, { "var": "y" }] } }
+            ] 
+          }
+        ]
+      }
+    },
+    {
+      "inductive": {
+        "name": "SymClosure",
+        "params": [
+          { "name": "A", "type": { "universe": "Type" } },
+          { "name": "R", "type": { 
+            "pi": {
+              "arg": { "name": "_", "type": { "var": "A" } },
+              "result": {
+                "pi": {
+                  "arg": { "name": "_", "type": { "var": "A" } },
+                  "result": { "universe": "Prop" }
+                }
+              }
+            }
+          }},
+          { "name": "x", "type": { "var": "A" } },
+          { "name": "y", "type": { "var": "A" } }
+        ],
+        "universe": "Prop",
+        "constructors": [
+          { 
+            "name": "SC.fwd", 
+            "args": [
+              { "name": "hr", "type": { "app": [{ "var": "R" }, { "var": "x" }, { "var": "y" }] } }
+            ] 
+          },
+          { 
+            "name": "SC.bwd", 
+            "args": [
+              { "name": "hr", "type": { "app": [{ "var": "R" }, { "var": "y" }, { "var": "x" }] } }
+            ] 
+          }
+        ]
+      }
+    }
+  ]
+}

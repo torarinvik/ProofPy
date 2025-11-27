@@ -54,6 +54,8 @@ let resolve_import (config : config) (name : name) : string option =
     | "Std.Eq" -> ["std_eq.json"]
     | "Std.Nat" -> ["std_nat.json"]
     | "Std.Fin" -> ["std_fin.json"]
+    | "Std.Relation" -> ["std_relation.json"]
+    | "Std.Decidable" -> ["std_decidable.json"]
     | "Std.Array" -> ["std_array.json"]
     | "Std.Either" -> ["std_either.json"]
     | "Std.Pointer" -> ["std_pointer.json"]

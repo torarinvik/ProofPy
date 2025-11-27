@@ -23,3 +23,5 @@ Thumbs.db
 # Backup files
 *_original.md
 *.o
+examples/verified_tetris.json
+docs/lean4_tetris_features.md

@@ -1,16 +1,260 @@
 {
   "module": "Std.Fin",
-  "imports": ["Std.Nat"],
+  "imports": ["Std.Nat", "Std.Bool", "Std.Eq"],
   "declarations": [
     {
       "inductive": {
+        "name": "Lt",
+        "params": [
+          { "name": "n", "type": { "var": "Nat" } },
+          { "name": "m", "type": { "var": "Nat" } }
+        ],
+        "universe": "Prop",
+        "constructors": [
+          {
+            "name": "Lt.zero_succ",
+            "args": [
+              { "name": "k", "type": { "var": "Nat" } },
+              { "name": "eq_n", "type": { "eq": { "type": { "var": "Nat" }, "lhs": { "var": "n" }, "rhs": { "var": "zero" } } } },
+              { "name": "eq_m", "type": { "eq": { "type": { "var": "Nat" }, "lhs": { "var": "m" }, "rhs": { "app": [{ "var": "succ" }, { "var": "k" }] } } } }
+            ]
+          },
+          {
+            "name": "Lt.succ_succ",
+            "args": [
+              { "name": "a", "type": { "var": "Nat" } },
+              { "name": "b", "type": { "var": "Nat" } },
+              { "name": "prev", "type": { "app": [{ "var": "Lt" }, { "var": "a" }, { "var": "b" }] } },
+              { "name": "eq_n", "type": { "eq": { "type": { "var": "Nat" }, "lhs": { "var": "n" }, "rhs": { "app": [{ "var": "succ" }, { "var": "a" }] } } } },
+              { "name": "eq_m", "type": { "eq": { "type": { "var": "Nat" }, "lhs": { "var": "m" }, "rhs": { "app": [{ "var": "succ" }, { "var": "b" }] } } } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "inductive": {
         "name": "Fin",
-        "params": [{ "name": "n", "type": { "var": "Nat" } }],
+        "params": [
+          { "name": "n", "type": { "var": "Nat" } }
+        ],
         "universe": "Type",
         "constructors": [
-          { "name": "fzero", "args": [] },
-          { "name": "fsucc", "args": [{ "name": "i", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } }] }
+          {
+            "name": "Fin.mk",
+            "args": [
+              { "name": "val", "type": { "var": "Nat" } },
+              { "name": "isLt", "type": { "app": [{ "var": "Lt" }, { "var": "val" }, { "var": "n" }] }, "role": "proof-only" }
+            ]
+          }
         ]
+      }
+    },
+    {
+      "def": {
+        "name": "Fin.val",
+        "role": "runtime",
+        "type": {
+          "forall": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "f", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                "result": { "var": "Nat" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "f", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                "body": {
+                  "match": {
+                    "scrutinee": { "var": "f" },
+                    "motive": { "var": "Nat" },
+                    "cases": [
+                      {
+                        "pattern": { "ctor": "Fin.mk", "args": [{ "name": "v" }, { "name": "_" }] },
+                        "body": { "var": "v" }
+                      }
+                    ],
+                    "coverage_hint": "complete"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "theorem": {
+        "name": "Lt_zero_any_succ",
+        "type": {
+          "forall": {
+            "arg": { "name": "k", "type": { "var": "Nat" } },
+            "result": { "app": [{ "var": "Lt" }, { "var": "zero" }, { "app": [{ "var": "succ" }, { "var": "k" }] }] }
+          }
+        },
+        "proof": {
+          "lambda": {
+            "arg": { "name": "k", "type": { "var": "Nat" } },
+            "body": {
+              "app": [
+                { "var": "Lt.zero_succ" },
+                { "var": "zero" },
+                { "app": [{ "var": "succ" }, { "var": "k" }] },
+                { "var": "k" },
+                { "refl": { "eq": { "type": { "var": "Nat" }, "lhs": { "var": "zero" }, "rhs": { "var": "zero" } } } },
+                { "refl": { "eq": { "type": { "var": "Nat" }, "lhs": { "app": [{ "var": "succ" }, { "var": "k" }] }, "rhs": { "app": [{ "var": "succ" }, { "var": "k" }] } } } }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "Fin.zero",
+        "role": "runtime",
+        "type": {
+          "forall": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": { "app": [{ "var": "Fin" }, { "app": [{ "var": "succ" }, { "var": "n" }] }] }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "app": [
+                { "var": "Fin.mk" },
+                { "app": [{ "var": "succ" }, { "var": "n" }] },
+                { "var": "zero" },
+                { "app": [{ "var": "Lt_zero_any_succ" }, { "var": "n" }] }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "Fin.toNat",
+        "role": "runtime",
+        "type": {
+          "forall": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "f", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                "result": { "var": "Nat" }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "f", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                "body": { "app": [{ "var": "Fin.val" }, { "var": "n" }, { "var": "f" }] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "Fin.eq",
+        "role": "runtime",
+        "type": {
+          "forall": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "a", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "b", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                    "result": { "prim": "Bool" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "a", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "b", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                    "body": {
+                      "app": [
+                        { "var": "eq_nat" },
+                        { "app": [{ "var": "Fin.val" }, { "var": "n" }, { "var": "a" }] },
+                        { "app": [{ "var": "Fin.val" }, { "var": "n" }, { "var": "b" }] }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "Fin.lt",
+        "role": "runtime",
+        "type": {
+          "forall": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": {
+              "pi": {
+                "arg": { "name": "a", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                "result": {
+                  "pi": {
+                    "arg": { "name": "b", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                    "result": { "prim": "Bool" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "lambda": {
+                "arg": { "name": "a", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                "body": {
+                  "lambda": {
+                    "arg": { "name": "b", "type": { "app": [{ "var": "Fin" }, { "var": "n" }] } },
+                    "body": {
+                      "app": [
+                        { "var": "lt_nat" },
+                        { "app": [{ "var": "Fin.val" }, { "var": "n" }, { "var": "a" }] },
+                        { "app": [{ "var": "Fin.val" }, { "var": "n" }, { "var": "b" }] }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   ]
