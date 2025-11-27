@@ -290,6 +290,25 @@ and parse_expr state =
            in
            mk_term (Lambda { arg = { name; ty = mk_term (Var "_") None None; role = Runtime; b_loc = None }; body }) None None
        | _ -> raise (ParseError "Expected identifier in lambda"))
+  | LAMBDA ->
+      (* lambda x: body  OR  lambda x: T: body  -- Python style with optional type *)
+      advance state;
+      (match peek state with
+       | IDENT name ->
+           advance state;
+           expect state COLON "Expected ':' after lambda parameter";
+           (* Try to parse a type annotation followed by another colon, or just the body *)
+           let ty_or_body = parse_expr state in
+           (match peek state with
+            | COLON ->
+                (* We have lambda x: T: body - ty_or_body is actually the type *)
+                advance state;
+                let body = parse_expr state in
+                mk_term (Lambda { arg = { name; ty = ty_or_body; role = Runtime; b_loc = None }; body }) None None
+            | _ ->
+                (* We have lambda x: body - no type annotation, ty_or_body is the body *)
+                mk_term (Lambda { arg = { name; ty = mk_term (Var "_") None None; role = Runtime; b_loc = None }; body = ty_or_body }) None None)
+       | _ -> raise (ParseError "Expected identifier after lambda"))
   | FUN ->
       (* fun x y => body *)
       advance state;
@@ -860,6 +879,45 @@ let parse_inductive state =
       }
   | _ -> raise (ParseError "Expected class name")
 
+(* Parse enum (alias for class/inductive type) - more Pythonic for ADTs *)
+let parse_inductive_with_enum state =
+  expect state ENUM "Expected 'enum'";
+  match peek state with
+  | IDENT name ->
+      advance state;
+      let params =
+        match peek state with
+        | LPAREN ->
+            advance state;
+            let p = parse_arg_list state in
+            expect state RPAREN "Expected ')' in enum params";
+            p
+        | _ -> []
+      in
+      (* enums default to Type universe *)
+      let universe = Syntax.Type in
+      expect state COLON "Expected ':' after enum definition";
+      expect state NEWLINE "Expected newline after enum definition";
+      expect state INDENT "Expected indented block for constructors";
+      let ctors = parse_constructors state in
+      expect state DEDENT "Expected dedent after enum body";
+      (* Prefix constructor names with enum name if not already prefixed *)
+      let qualified_ctors = List.map (fun ctor ->
+        let qualified_name =
+          if String.contains ctor.ctor_name '.' then ctor.ctor_name
+          else name ^ "." ^ ctor.ctor_name
+        in
+        { ctor with ctor_name = qualified_name }
+      ) ctors in
+      {
+        ind_name = name;
+        params = params;
+        ind_universe = universe;
+        constructors = qualified_ctors;
+        ind_loc = None;
+      }
+  | _ -> raise (ParseError "Expected enum name")
+
 (* Parse a theorem declaration *)
 let parse_theorem state =
   expect state THEOREM "Expected 'theorem'";
@@ -1042,6 +1100,133 @@ let parse_struct state =
       
   | _ -> raise (ParseError "Expected struct name")
 
+(* Parse @dataclass decorated class as a struct - uses 'class' keyword instead of 'struct' *)
+and parse_struct_as_class state =
+  expect state CLASS "Expected 'class' after @dataclass";
+  match peek state with
+  | IDENT name ->
+      advance state;
+      let params =
+        match peek state with
+        | LPAREN ->
+            advance state;
+            let p = parse_arg_list state in
+            expect state RPAREN "Expected ')' in dataclass params";
+            p
+        | _ -> []
+      in
+      expect state COLON "Expected ':' after dataclass definition";
+      expect state NEWLINE "Expected newline after dataclass definition";
+      expect state INDENT "Expected indented block for dataclass fields";
+      let fields = parse_struct_fields state in
+      expect state DEDENT "Expected dedent after dataclass body";
+      
+      (* Now reuse parse_struct's struct generation logic *)
+      (* Create the inductive type with a single constructor named Name.mk *)
+      let struct_ty = 
+        if params = [] then mk_term (Var name) None None
+        else mk_term (App (mk_term (Var name) None None, 
+                           List.map (fun b -> mk_term (Var b.name) None None) params)) None None
+      in
+      
+      let ind_decl = Inductive {
+        ind_name = name;
+        params = params;
+        ind_universe = Type;
+        constructors = [{
+          ctor_name = name ^ ".mk";
+          ctor_args = fields;
+          ctor_loc = None;
+        }];
+        ind_loc = None;
+      } in
+      
+      (* Generate projection functions for each field *)
+      let make_projection field_idx (field : binder) =
+        let struct_arg = { name = "s"; ty = struct_ty; role = Runtime; b_loc = None } in
+        let full_type = 
+          List.fold_right 
+            (fun b acc -> mk_term (Pi { arg = b; result = acc }) None None)
+            (params @ [struct_arg])
+            field.ty
+        in
+        let pattern_args = List.mapi (fun i _f -> { arg_name = "f" ^ string_of_int i; arg_loc = None }) fields in
+        let field_var = "f" ^ string_of_int field_idx in
+        let match_expr = mk_term (Match {
+          scrutinee = mk_term (Var "s") None None;
+          motive = field.ty;
+          as_name = None;
+          cases = [{
+            pattern = { ctor = name ^ ".mk"; args = pattern_args; pat_loc = None };
+            body = mk_term (Var field_var) None None;
+            case_loc = None;
+          }];
+          coverage_hint = Complete;
+        }) None None in
+        let full_body =
+          List.fold_right
+            (fun b acc -> mk_term (Lambda { arg = b; body = acc }) None None)
+            (params @ [struct_arg])
+            match_expr
+        in
+        Definition {
+          def_name = name ^ "." ^ field.name;
+          def_role = Runtime;
+          def_type = full_type;
+          def_body = full_body;
+          rec_args = None;
+          def_loc = None;
+        }
+      in
+      
+      (* Generate update functions for each field *)
+      let make_updater field_idx (field : binder) =
+        let struct_arg = { name = "s"; ty = struct_ty; role = Runtime; b_loc = None } in
+        let new_val_arg = { name = "newVal"; ty = field.ty; role = Runtime; b_loc = None } in
+        let full_type = 
+          List.fold_right 
+            (fun b acc -> mk_term (Pi { arg = b; result = acc }) None None)
+            (params @ [struct_arg; new_val_arg])
+            struct_ty
+        in
+        let pattern_args = List.mapi (fun i _f -> { arg_name = "f" ^ string_of_int i; arg_loc = None }) fields in
+        let ctor_args = List.mapi (fun i _f ->
+          if i = field_idx then mk_term (Var "newVal") None None
+          else mk_term (Var ("f" ^ string_of_int i)) None None
+        ) fields in
+        let match_expr = mk_term (Match {
+          scrutinee = mk_term (Var "s") None None;
+          motive = struct_ty;
+          as_name = None;
+          cases = [{
+            pattern = { ctor = name ^ ".mk"; args = pattern_args; pat_loc = None };
+            body = mk_term (App (mk_term (Var (name ^ ".mk")) None None, ctor_args)) None None;
+            case_loc = None;
+          }];
+          coverage_hint = Complete;
+        }) None None in
+        let full_body =
+          List.fold_right
+            (fun b acc -> mk_term (Lambda { arg = b; body = acc }) None None)
+            (params @ [struct_arg; new_val_arg])
+            match_expr
+        in
+        Definition {
+          def_name = "_update_" ^ field.name;
+          def_role = Runtime;
+          def_type = full_type;
+          def_body = full_body;
+          rec_args = None;
+          def_loc = None;
+        }
+      in
+      
+      let projections = List.mapi make_projection fields in
+      let updaters = List.mapi make_updater fields in
+      ind_decl :: projections @ updaters
+      
+  | _ -> raise (ParseError "Expected dataclass name")
+
 (* Parse an abbreviation/type alias *)
 let parse_abbrev state =
   expect state ABBREV "Expected 'abbrev'";
@@ -1162,8 +1347,27 @@ let rec parse_top_level_items state =
       let name = parse_dotted_name "" in
       expect state NEWLINE "Expected newline after import";
       Import name :: parse_top_level_items state
+  | AT ->
+      (* @decorator - currently only @dataclass is supported *)
+      advance state;
+      (match peek state with
+       | IDENT "dataclass" ->
+           advance state;
+           expect state NEWLINE "Expected newline after @dataclass";
+           (* @dataclass class Name: is parsed as a struct *)
+           (match peek state with
+            | CLASS ->
+                let struct_decls = parse_struct_as_class state in
+                List.map (fun d -> Decl d) struct_decls @ parse_top_level_items state
+            | _ -> raise (ParseError "Expected 'class' after @dataclass"))
+       | IDENT name -> raise (ParseError ("Unknown decorator: @" ^ name))
+       | _ -> raise (ParseError "Expected decorator name after @"))
   | CLASS ->
       let ind = parse_inductive state in
+      Decl (Inductive ind) :: parse_top_level_items state
+  | ENUM ->
+      (* enum is an alias for class (inductive type) - more Pythonic for ADTs *)
+      let ind = parse_inductive_with_enum state in
       Decl (Inductive ind) :: parse_top_level_items state
   | STRUCT ->
       let struct_decls = parse_struct state in

@@ -1,9 +1,10 @@
 # =============================================================================
-#                    VERIFIED TETRIS IN CERTIJSON (.cj)
+#                    VERIFIED TETRIS IN PROOFPY (.cj)
 # =============================================================================
-# This demonstrates:
-# - Inductive types with qualified constructors (Kind.I, Rot.r0, etc.)
-# - Structures for composite data types
+# This demonstrates Python-like syntax with dependent types:
+# - enum for algebraic data types (ADTs)
+# - @dataclass for record types with auto-generated projections
+# - lambda for anonymous functions
 # - Propositions in Prop universe
 # - Small-step operational semantics
 # - Type-safe game state management
@@ -16,14 +17,14 @@ import Std.Bool
 import Std.Option
 
 # =============================================================================
-# CORE TYPES
+# CORE TYPES (using Pythonic 'enum' syntax)
 # =============================================================================
 
-class Cell:
+enum Cell:
     empty
     solid(color: Nat)
 
-class Kind:
+enum Kind:
     I
     O
     T
@@ -32,18 +33,18 @@ class Kind:
     J
     L
 
-class Rot:
+enum Rot:
     r0
     r90
     r180
     r270
 
-class GameStatus:
+enum GameStatus:
     running
     paused
     gameOver
 
-class Input:
+enum Input:
     moveLeft
     moveRight
     rotateCW
@@ -52,19 +53,22 @@ class Input:
     hardDrop
 
 # =============================================================================
-# STRUCTURES
+# STRUCTURES (using Pythonic '@dataclass' syntax)
 # =============================================================================
 
-struct Pos:
+@dataclass
+class Pos:
     x: Nat
     y: Nat
 
-struct ActivePiece:
+@dataclass
+class ActivePiece:
     kind: Kind
     pos: Pos
     rotation: Rot
 
-struct GameState:
+@dataclass
+class GameState:
     active: Option(ActivePiece)
     score: Nat
     linesCleared: Nat

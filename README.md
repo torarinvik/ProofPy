@@ -28,9 +28,46 @@ ProofPy features a Python-like frontend syntax designed to be familiar and easy 
 - **Dependent Types**: `(x: Int32) -> Int32` (Pi types)
 - **Refinement Types**: `{v: Int32 | v != 0}` (Subset types)
 - **Control Flow**: `if cond: ... else: ...`, `return expr`
-- **Implicit Return**: The last expression in a block is returned if it's not a statement.
+- **Enums**: `enum Name:` for algebraic data types
+- **Dataclasses**: `@dataclass class Name:` for record types
+- **Lambda**: `lambda x: Type: body` for anonymous functions
+- **Struct Update**: `{ base with field := value }` for functional updates
 
 ### Examples
+
+#### Enum Types (ADTs)
+
+```python
+enum Color:
+    Red
+    Green
+    Blue
+```
+
+#### Dataclass (Records)
+
+```python
+@dataclass
+class Point:
+    x: Nat
+    y: Nat
+
+# Auto-generates: Point.x(p), Point.y(p), _update_x, _update_y
+```
+
+#### Lambda Expressions
+
+```python
+def double(n: Nat) -> Nat:
+    return (lambda x: Nat: add_nat(x, x))(n)
+```
+
+#### Struct Update Syntax
+
+```python
+def move_right(p: Point) -> Point:
+    return { p with x := succ(Point.x(p)) }
+```
 
 #### Basic Function
 
