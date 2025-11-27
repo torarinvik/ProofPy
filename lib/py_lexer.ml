@@ -3,7 +3,7 @@ module Loc = Loc
 type token =
   | DEF | RETURN | IF | ELSE | ELIF | WHILE | MATCH | CASE | CLASS | IMPORT
   | THEOREM | FORALL | PROOF | PROP | IN | STRUCT | ABBREV | NAMESPACE | WHERE
-  | LET | EXISTS | REFL
+  | LET | EXISTS | REFL | WITH | THEN | FUN
   | IDENT of string
   | INT of int32
   | INT64 of int64
@@ -13,6 +13,7 @@ type token =
   | COLON | SEMICOLON | COMMA | DOT
   | ARROW (* -> *)
   | ASSIGN (* = *)
+  | COLONASSIGN (* := *)
   | EQ (* == *) | PROPEQ (* === *) | NEQ (* != *) | LT | GT | LE | GE
   | PLUS | MINUS | STAR | SLASH | PERCENT
   | AND | OR | NOT
@@ -58,6 +59,9 @@ let keywords = [
   ("let", LET);
   ("exists", EXISTS);
   ("refl", REFL);
+  ("with", WITH);
+  ("then", THEN);
+  ("fun", FUN);
   ("True", BOOL true);
   ("False", BOOL false);
   ("and", AND);
@@ -159,7 +163,10 @@ let tokenize (source : string) : token list =
     | ']' -> ignore (advance ()); add RBRACK
     | '{' -> ignore (advance ()); add LBRACE
     | '}' -> ignore (advance ()); add RBRACE
-    | ':' -> ignore (advance ()); add COLON
+    | ':' -> 
+        ignore (advance ()); 
+        if peek () = '=' then (ignore (advance ()); add COLONASSIGN)
+        else add COLON
     | ';' -> ignore (advance ()); add SEMICOLON
     | ',' -> ignore (advance ()); add COMMA
     | '.' -> ignore (advance ()); add DOT

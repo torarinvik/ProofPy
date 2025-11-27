@@ -207,8 +207,15 @@ def thm_empty_is_empty : isCellEmpty(Cell.empty) === True : Bool =
 def thm_solid_is_filled : isCellFilled(Cell.solid(succ(zero))) === True : Bool =
     refl
 
-# Initial state is running - we can't easily access struct fields yet
-# so we verify the components directly
+# Initial state theorems using struct projections
+def thm_initial_status : GameState.status(initialState) === GameStatus.running : GameStatus =
+    refl
+
+def thm_initial_score : GameState.score(initialState) === zero : Nat =
+    refl
+
+def thm_initial_lines : GameState.linesCleared(initialState) === zero : Nat =
+    refl
 
 # 4 clockwise rotations = identity (for r0)
 def thm_cw4_identity : Rot_cw(Rot_cw(Rot_cw(Rot_cw(Rot.r0)))) === Rot.r0 : Rot =
@@ -219,4 +226,108 @@ def thm_I_color : Kind_color(Kind.I) === succ(zero) : Nat =
     refl
 
 def thm_O_color : Kind_color(Kind.O) === succ(succ(zero)) : Nat =
+    refl
+
+# =============================================================================
+# GAME STATE UPDATES (using struct update syntax)
+# =============================================================================
+
+# Pause the game
+def pauseGame(gs: GameState) -> GameState:
+    return { gs with status := GameStatus.paused }
+
+# Resume the game
+def resumeGame(gs: GameState) -> GameState:
+    return { gs with status := GameStatus.running }
+
+# End the game
+def gameOver(gs: GameState) -> GameState:
+    return { gs with status := GameStatus.gameOver }
+
+# Add score
+def addScore(gs: GameState, points: Nat) -> GameState:
+    return { gs with score := add_nat(GameState.score(gs), points) }
+
+# Increment lines cleared
+def clearLines(gs: GameState, count: Nat) -> GameState:
+    return { gs with linesCleared := add_nat(GameState.linesCleared(gs), count) }
+
+# =============================================================================
+# POSITION MANIPULATION
+# =============================================================================
+
+# Move position left (decrease x by 1, if positive)
+def Pos_left(p: Pos) -> Pos:
+    match Pos.x(p):
+        case zero:
+            return p
+        case succ(n):
+            return { p with x := n }
+
+# Move position right (increase x by 1)
+def Pos_right(p: Pos) -> Pos:
+    return { p with x := succ(Pos.x(p)) }
+
+# Move position down (increase y by 1) 
+def Pos_down(p: Pos) -> Pos:
+    return { p with y := succ(Pos.y(p)) }
+
+# =============================================================================
+# ACTIVE PIECE MANIPULATION
+# =============================================================================
+
+# Rotate piece clockwise
+def rotatePieceCW(ap: ActivePiece) -> ActivePiece:
+    return { ap with rotation := Rot_cw(ActivePiece.rotation(ap)) }
+
+# Rotate piece counter-clockwise
+def rotatePieceCCW(ap: ActivePiece) -> ActivePiece:
+    return { ap with rotation := Rot_ccw(ActivePiece.rotation(ap)) }
+
+# Move piece left
+def movePieceLeft(ap: ActivePiece) -> ActivePiece:
+    return { ap with pos := Pos_left(ActivePiece.pos(ap)) }
+
+# Move piece right
+def movePieceRight(ap: ActivePiece) -> ActivePiece:
+    return { ap with pos := Pos_right(ActivePiece.pos(ap)) }
+
+# Move piece down
+def movePieceDown(ap: ActivePiece) -> ActivePiece:
+    return { ap with pos := Pos_down(ActivePiece.pos(ap)) }
+
+# =============================================================================
+# THEOREMS ABOUT GAME STATE UPDATES
+# =============================================================================
+
+# Pausing a running game results in paused status
+def thm_pause_status : GameState.status(pauseGame(initialState)) === GameStatus.paused : GameStatus =
+    refl
+
+# Resuming a paused game results in running status
+def thm_resume_status : GameState.status(resumeGame(pauseGame(initialState))) === GameStatus.running : GameStatus =
+    refl
+
+# Game over results in gameOver status
+def thm_gameover_status : GameState.status(gameOver(initialState)) === GameStatus.gameOver : GameStatus =
+    refl
+
+# Pausing preserves score
+def thm_pause_preserves_score : GameState.score(pauseGame(initialState)) === zero : Nat =
+    refl
+
+# Pausing preserves lines cleared
+def thm_pause_preserves_lines : GameState.linesCleared(pauseGame(initialState)) === zero : Nat =
+    refl
+
+# =============================================================================
+# THEOREMS ABOUT ROTATION
+# =============================================================================
+
+# Double CW rotation after CCW cancels one CW
+def thm_ccw_cw_cw : Rot_cw(Rot_cw(Rot_ccw(Rot.r0))) === Rot.r90 : Rot =
+    refl
+
+# Position theorems
+def thm_right_left_identity : Pos.x(Pos_left(Pos_right(Pos.mk(zero, zero)))) === zero : Nat =
     refl

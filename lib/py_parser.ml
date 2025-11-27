@@ -158,13 +158,87 @@ let rec parse_type state =
       (match peek state with
        | IDENT name ->
            advance state;
-           expect state COLON "Expected ':' in refinement type";
-           let ty = parse_type state in
-           expect state PIPE "Expected '|' in refinement type";
-           let pred = parse_expr state in
-           expect state RBRACE "Expected '}'";
-           mk_term (Subset { arg = { name; ty; role = Runtime; b_loc = None }; pred }) None None
-       | _ -> raise (ParseError "Expected identifier in refinement type"))
+           (* Could be refinement type { x : T | pred } or struct update { base with field := value } *)
+           (match peek state with
+            | COLON ->
+                (* Refinement type: { name : type | pred } *)
+                advance state;
+                let ty = parse_type state in
+                expect state PIPE "Expected '|' in refinement type";
+                let pred = parse_expr state in
+                expect state RBRACE "Expected '}'";
+                mk_term (Subset { arg = { name; ty; role = Runtime; b_loc = None }; pred }) None None
+            | WITH ->
+                (* Struct update: { base with field := value, ... } *)
+                advance state;
+                (* Parse field updates *)
+                let rec parse_updates () =
+                  match peek state with
+                  | RBRACE -> []
+                  | IDENT field ->
+                      advance state;
+                      expect state COLONASSIGN "Expected ':=' after field name in struct update";
+                      let value = parse_expr state in
+                      let rest = 
+                        match peek state with
+                        | COMMA -> advance state; parse_updates ()
+                        | _ -> []
+                      in
+                      (field, value) :: rest
+                  | _ -> raise (ParseError "Expected field name in struct update")
+                in
+                let updates = parse_updates () in
+                expect state RBRACE "Expected '}' after struct update";
+                (* Convert { base with f1 := v1, f2 := v2 } into functional record update
+                   We need runtime support or expand to constructor call.
+                   For now, generate a function call: struct_update_<field>(base, value) 
+                   This will need stdlib support.
+                   Better approach: expand directly to constructor call with fields.
+                   Since we don't know the type statically here, let's use a special update syntax
+                   that the type-checker can resolve.
+                   For now, let's use a simpler approach:
+                   { s with x := v } becomes WithUpdate(s, "x", v)
+                   But we don't have that in the AST. Let's use App form.
+                   Actually, the simplest approach for a dependently-typed language:
+                   Generate nested applications: set_field(base, value) for each update.
+                   We can generate: S.mk(field1, field2, ...) with the updated values.
+                   But we need type info for that.
+                   
+                   Let's use a special marker that type-checker can expand:
+                   Create a special StructUpdate node or use App with a special name.
+                   For MVP, let's just generate sequential updates:
+                   { s with x := v1, y := v2 } => update_y(update_x(s, v1), v2)
+                   where update_x is a function that must be defined.
+                   
+                   Actually simpler: generate Let bindings that shadow fields.
+                   Let's just create a special App for now with mangled name.
+                *)
+                let base_term = mk_term (Var name) None None in
+                List.fold_left (fun acc (field, value) ->
+                  (* Generate: _struct_update(acc, "field", value) 
+                     For now, let's use a simpler approach - call update_<field>(base, value)
+                     But that requires defining update functions.
+                     
+                     Best simple approach: just use constructor with match/let:
+                     let old = base in S.mk(v1, S.field2(old), S.field3(old), ...)
+                     But we don't know S here without type info.
+                     
+                     Let's use a workaround: generate direct field setter application
+                     set_<StructType>_<field>(base, value)
+                     But again, needs type info.
+                     
+                     For MVP, let's just not support this and require explicit constructor calls.
+                     Return an error-indicative term for now.
+                  *)
+                  (* Simple workaround: assume functions like GameState_with_score exist *)
+                  let update_fn = "_update_" ^ field in
+                  mk_term (App (mk_term (Var update_fn) None None, [acc; value])) None None
+                ) base_term updates
+            | _ ->
+                (* It's an expression that starts with identifier, backtrack *)
+                state.pos <- state.pos - 2;  (* Go back before LBRACE and IDENT *)
+                raise (ParseError "Expected ':' or 'with' in brace expression"))
+       | _ -> raise (ParseError "Expected identifier in brace expression"))
   | LPAREN ->
       let start_pos = state.pos in
       advance state;
@@ -198,6 +272,7 @@ and parse_type_args state =
 and parse_expr state =
   match peek state with
   | BACKSLASH ->
+      (* \x -> body *)
       advance state;
       (match peek state with
        | IDENT name ->
@@ -215,10 +290,49 @@ and parse_expr state =
            in
            mk_term (Lambda { arg = { name; ty = mk_term (Var "_") None None; role = Runtime; b_loc = None }; body }) None None
        | _ -> raise (ParseError "Expected identifier in lambda"))
+  | FUN ->
+      (* fun x y => body *)
+      advance state;
+      let rec parse_fun_args () =
+        match peek state with
+        | IDENT name ->
+            advance state;
+            let ty =
+              match peek state with
+              | COLON -> advance state; parse_type state
+              | _ -> mk_term (Var "_") None None
+            in
+            let arg = { name; ty; role = Runtime; b_loc = None } in
+            (match peek state with
+             | ARROW -> [arg]  (* => marks end of args *)
+             | _ -> arg :: parse_fun_args ())
+        | _ -> []
+      in
+      let args = parse_fun_args () in
+      expect state ARROW "Expected '=>' or '->' after fun arguments";
+      let body = parse_expr state in
+      List.fold_right 
+        (fun arg acc -> mk_term (Lambda { arg; body = acc }) None None) 
+        args body
+  | IF ->
+      (* if cond then e1 else e2 *)
+      advance state;
+      let cond = parse_or_expr state in
+      (match peek state with
+       | THEN ->
+           advance state;
+           let then_branch = parse_expr state in
+           expect state ELSE "Expected 'else' in if expression";
+           let else_branch = parse_expr state in
+           mk_term (If { cond; then_ = then_branch; else_ = else_branch }) None None
+       | _ ->
+           (* Fall back: this might be a standalone if statement misparse *)
+           raise (ParseError "Expected 'then' after condition in if expression"))
   | _ ->
       let left = parse_or_expr state in
       match peek state with
       | IF ->
+          (* x if cond else y - ternary form *)
           advance state;
           let cond = parse_or_expr state in
           expect state ELSE "Expected 'else' in if expression";
@@ -785,6 +899,7 @@ let rec parse_struct_fields state =
   | _ -> raise (ParseError ("Unexpected token in struct body: " ^ (show_token (peek state))))
 
 (* Parse a structure declaration - single constructor record type *)
+(* Returns a list of declarations: the inductive + projection functions *)
 let parse_struct state =
   expect state STRUCT "Expected 'struct'";
   match peek state with
@@ -804,8 +919,9 @@ let parse_struct state =
       expect state INDENT "Expected indented block for struct fields";
       let fields = parse_struct_fields state in
       expect state DEDENT "Expected dedent after struct body";
-      (* Create an inductive with a single constructor named Name.mk *)
-      Inductive {
+      
+      (* Create the inductive type with a single constructor named Name.mk *)
+      let ind_decl = Inductive {
         ind_name = name;
         params = params;
         ind_universe = Type;
@@ -815,7 +931,115 @@ let parse_struct state =
           ctor_loc = None;
         }];
         ind_loc = None;
-      }
+      } in
+      
+      (* Generate projection functions for each field *)
+      (* For struct S with params P1...Pn and field f : T, generate:
+         def S.f (p1: P1) ... (pn: Pn) (s: S(p1,...,pn)) -> T :=
+           match s with
+           | S.mk(..., f, ...) => f
+      *)
+      let struct_ty = 
+        if params = [] then mk_term (Var name) None None
+        else mk_term (App (mk_term (Var name) None None, 
+                           List.map (fun b -> mk_term (Var b.name) None None) params)) None None
+      in
+      
+      let make_projection field_idx (field : binder) =
+        (* Build the type: forall params, S(params) -> field.ty *)
+        let struct_arg = { name = "s"; ty = struct_ty; role = Runtime; b_loc = None } in
+        let full_type = 
+          List.fold_right 
+            (fun b acc -> mk_term (Pi { arg = b; result = acc }) None None)
+            (params @ [struct_arg])
+            field.ty
+        in
+        
+        (* Build the body: match s with S.mk(f0, f1, ...) => field *)
+        let pattern_args = List.mapi (fun i _f -> { arg_name = "f" ^ string_of_int i; arg_loc = None }) fields in
+        let field_var = "f" ^ string_of_int field_idx in
+        let match_expr = mk_term (Match {
+          scrutinee = mk_term (Var "s") None None;
+          motive = field.ty;
+          as_name = None;
+          cases = [{
+            pattern = { ctor = name ^ ".mk"; args = pattern_args; pat_loc = None };
+            body = mk_term (Var field_var) None None;
+            case_loc = None;
+          }];
+          coverage_hint = Complete;
+        }) None None in
+        
+        let full_body =
+          List.fold_right
+            (fun b acc -> mk_term (Lambda { arg = b; body = acc }) None None)
+            (params @ [struct_arg])
+            match_expr
+        in
+        
+        Definition {
+          def_name = name ^ "." ^ field.name;
+          def_role = Runtime;
+          def_type = full_type;
+          def_body = full_body;
+          rec_args = None;
+          def_loc = None;
+        }
+      in
+      
+      (* Generate update functions for each field *)
+      (* _update_<field>(s: S, newVal: T) -> S = match s with S.mk(...) => S.mk(..., newVal, ...) *)
+      let make_updater field_idx (field : binder) =
+        let struct_arg = { name = "s"; ty = struct_ty; role = Runtime; b_loc = None } in
+        let new_val_arg = { name = "newVal"; ty = field.ty; role = Runtime; b_loc = None } in
+        let full_type = 
+          List.fold_right 
+            (fun b acc -> mk_term (Pi { arg = b; result = acc }) None None)
+            (params @ [struct_arg; new_val_arg])
+            struct_ty
+        in
+        
+        (* Build pattern args and constructor args *)
+        let pattern_args = List.mapi (fun i _f -> { arg_name = "f" ^ string_of_int i; arg_loc = None }) fields in
+        (* Constructor args: use newVal for the updated field, f_i for others *)
+        let ctor_args = List.mapi (fun i _f ->
+          if i = field_idx then mk_term (Var "newVal") None None
+          else mk_term (Var ("f" ^ string_of_int i)) None None
+        ) fields in
+        
+        let match_expr = mk_term (Match {
+          scrutinee = mk_term (Var "s") None None;
+          motive = struct_ty;
+          as_name = None;
+          cases = [{
+            pattern = { ctor = name ^ ".mk"; args = pattern_args; pat_loc = None };
+            body = mk_term (App (mk_term (Var (name ^ ".mk")) None None, ctor_args)) None None;
+            case_loc = None;
+          }];
+          coverage_hint = Complete;
+        }) None None in
+        
+        let full_body =
+          List.fold_right
+            (fun b acc -> mk_term (Lambda { arg = b; body = acc }) None None)
+            (params @ [struct_arg; new_val_arg])
+            match_expr
+        in
+        
+        Definition {
+          def_name = "_update_" ^ field.name;
+          def_role = Runtime;
+          def_type = full_type;
+          def_body = full_body;
+          rec_args = None;
+          def_loc = None;
+        }
+      in
+      
+      let projections = List.mapi make_projection fields in
+      let updaters = List.mapi make_updater fields in
+      ind_decl :: projections @ updaters
+      
   | _ -> raise (ParseError "Expected struct name")
 
 (* Parse an abbreviation/type alias *)
@@ -942,8 +1166,8 @@ let rec parse_top_level_items state =
       let ind = parse_inductive state in
       Decl (Inductive ind) :: parse_top_level_items state
   | STRUCT ->
-      let struct_decl = parse_struct state in
-      Decl struct_decl :: parse_top_level_items state
+      let struct_decls = parse_struct state in
+      List.map (fun d -> Decl d) struct_decls @ parse_top_level_items state
   | ABBREV ->
       let abbrev_decl = parse_abbrev state in
       Decl abbrev_decl :: parse_top_level_items state
