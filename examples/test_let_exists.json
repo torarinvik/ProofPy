@@ -1,0 +1,63 @@
+{
+  "module": "TestLetExists",
+  "imports": ["Std.Nat", "Std.Bool"],
+  "declarations": [
+    {
+      "def": {
+        "name": "double_via_let",
+        "type": {
+          "pi": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": { "var": "Nat" }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "let": {
+                "arg": { "name": "x", "type": { "var": "Nat" } },
+                "value": { "var": "n" },
+                "body": {
+                  "app": [
+                    { "var": "add_nat" },
+                    { "var": "x" },
+                    { "var": "x" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "def": {
+        "name": "IsSucc",
+        "type": {
+          "pi": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "result": { "universe": "Prop" }
+          }
+        },
+        "body": {
+          "lambda": {
+            "arg": { "name": "n", "type": { "var": "Nat" } },
+            "body": {
+              "exists": {
+                "arg": { "name": "m", "type": { "var": "Nat" } },
+                "body": {
+                  "eq": {
+                    "type": { "var": "Nat" },
+                    "lhs": { "var": "n" },
+                    "rhs": { "app": [{ "var": "succ" }, { "var": "m" }] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

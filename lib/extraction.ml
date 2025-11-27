@@ -322,6 +322,18 @@ let rec translate_term (ctx : Context.context) (env : (string * string) list) (t
     )
   | If { cond; then_; else_ } ->
       CTernary (translate_term ctx env cond, translate_term ctx env then_, translate_term ctx env else_)
+  | Let { arg; value; body = _ } ->
+      (* In expression context, let is not directly representable in C expressions.
+         This is a fallback - the preferred path is through translate_pure which 
+         generates proper C statements. We use a GCC extension (statement expression)
+         or just inline if the value is simple. *)
+      let val_expr = translate_term ctx env value in
+      (* For simple cases, we can use a comma expression, but that's not quite right
+         semantically. Mark as unsupported for now - proper handling is in translate_pure *)
+      CVar (Printf.sprintf "/* let %s = %s in ... */<unsupported_let_expr>" arg.name (Format.asprintf "%a" pp_c_expr val_expr))
+  | Exists _ | ExistsIntro _ ->
+      (* Existential types are erased at runtime *)
+      CVar "tt"
   | _ -> CVar "<unsupported>"
 
 let rec returns_universe (t : Syntax.term) : bool =
@@ -772,6 +784,37 @@ let extract_def (ctx : Context.context) (def : Syntax.def_decl) : c_func option 
             let then_block = CBlock then_stmts in
             let else_block = match else_stmts with [] -> None | _ -> Some (CBlock else_stmts) in
             [CIf (cond_expr, then_block, else_block)]
+        | Let { arg; value; body } ->
+            (* let x : T := v in body  ->  T x = v; ...body... *)
+            let var_name = fresh_name arg.name in
+            let env' = (arg.name, var_name) :: env in
+            let ty = translate_type ctx arg.ty in
+            
+            (* Check if this is a discarded binding (underscore pattern) *)
+            let is_discarded = String.equal arg.name "_" in
+            
+            (* Check if value is complex *)
+            let val_stmts, val_init = 
+              match value.desc with
+              | Match _ | If _ | App _ | Let _ ->
+                  (* Complex: generate statements to compute value into var_name *)
+                  if ty = CVoid || is_discarded then
+                    (translate_pure env value None CVoid, None)
+                  else
+                    (translate_pure env value (Some var_name) ty, None)
+              | _ ->
+                  (* Simple: use initializer *)
+                  if is_discarded then
+                    ([CExpr (translate_term ctx env value)], None)
+                  else
+                    ([], Some (translate_term ctx env value))
+            in
+            
+            let decl = 
+              if ty = CVoid || is_discarded then []
+              else [CDecl (ty, var_name, val_init)]
+            in
+            decl @ val_stmts @ translate_pure env' body res_var ret_ty
         | _ ->
             let body_expr = translate_term ctx env t in
             match res_var with

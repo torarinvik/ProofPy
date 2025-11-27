@@ -305,6 +305,23 @@ let rec subst_term (old_t : term) (new_t : term) (t : term) : term =
           else subst_term old_t new_t body
         in
         mk ?loc:t.loc (Lambda { arg = { arg with ty = arg_ty }; body })
+    | Let { arg; value; body } ->
+        let arg_ty = subst_term old_t new_t arg.ty in
+        let value = subst_term old_t new_t value in
+        let body =
+          if is_shadowed arg.name then body
+          else subst_term old_t new_t body
+        in
+        mk ?loc:t.loc (Let { arg = { arg with ty = arg_ty }; value; body })
+    | Exists { arg; body } ->
+        let arg_ty = subst_term old_t new_t arg.ty in
+        let body =
+          if is_shadowed arg.name then body
+          else subst_term old_t new_t body
+        in
+        mk ?loc:t.loc (Exists { arg = { arg with ty = arg_ty }; body })
+    | ExistsIntro { witness; proof } ->
+        mk ?loc:t.loc (ExistsIntro { witness = subst_term old_t new_t witness; proof = subst_term old_t new_t proof })
     | App (f, args) ->
         mk ?loc:t.loc (App (subst_term old_t new_t f, List.map (subst_term old_t new_t) args))
     | Eq { ty; lhs; rhs } ->
@@ -431,6 +448,12 @@ let rec positive_occurrences (target : name) (positive : bool) (t : term) : bool
       go (not positive) arg.ty && go positive result
   | Lambda { arg; body } ->
       go positive arg.ty && go positive body
+  | Let { arg; value; body } ->
+      go positive arg.ty && go positive value && go positive body
+  | Exists { arg; body } ->
+      go positive arg.ty && go positive body
+  | ExistsIntro { witness; proof } ->
+      go positive witness && go positive proof
   | App (f, args) ->
       go positive f && List.for_all (go positive) args
   | Eq { ty; lhs; rhs } ->
@@ -618,6 +641,33 @@ let rec infer (ctx : context) (t : term) : term =
       let ctx' = extend ctx arg.name ~role:arg.role arg.ty in
       let body_ty = infer ctx' body in
       mk ?loc:t.loc (Pi { arg; result = body_ty })
+  | Let { arg; value; body } ->
+      (* let x : T := v in body *)
+      let arg_kind = infer ctx arg.ty in
+      (match arg_kind.desc with
+      | Universe _ -> ()
+      | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
+      let _ = check ctx value arg.ty in
+      let ctx' = extend ctx arg.name ~role:arg.role arg.ty in
+      infer ctx' body
+  | Exists { arg; body } ->
+      (* ∃ x : T, P  :  Prop when P : Prop *)
+      let arg_kind = infer ctx arg.ty in
+      (match arg_kind.desc with
+      | Universe _ -> ()
+      | _ -> raise (TypeError (NotAType (arg.ty, arg.ty.loc))));
+      let ctx' = extend ctx arg.name ~role:arg.role arg.ty in
+      let body_ty = infer ctx' body in
+      (match body_ty.desc with
+      | Universe Prop -> ()
+      | PrimType Bool -> ()
+      | _ -> raise (TypeError (NotAProp (body, body.loc))));
+      mk ?loc:t.loc (Universe Prop)
+  | ExistsIntro { witness; proof } ->
+      (* ⟨w, p⟩ requires expected type context to be ∃ x : T, P *)
+      let _ = infer ctx witness in
+      let _ = infer ctx proof in
+      raise (TypeError (TypeMismatch { expected = mk (Var "Exists type"); actual = t; context = "inference"; loc = t.loc }))
   | App (f, args) ->
       List.fold_left
         (fun f_ty arg ->
@@ -953,6 +1003,10 @@ let rec has_self_reference (self : name) (t : term) : bool =
   | SubsetProof tm -> has_self_reference self tm
   | Array { elem_ty; size } -> has_self_reference self elem_ty || has_self_reference self size
   | ArrayHandle { elem_ty; size } -> has_self_reference self elem_ty || has_self_reference self size
+  | Let { arg; value; body } ->
+      has_self_reference self arg.ty || has_self_reference self value || has_self_reference self body
+  | Exists { arg; body } -> has_self_reference self arg.ty || has_self_reference self body
+  | ExistsIntro { witness; proof } -> has_self_reference self witness || has_self_reference self proof
 
 let check_termination (def : def_decl) : unit =
   let params, _ = collect_pi_binders def.def_type in
@@ -1134,6 +1188,16 @@ let check_termination (def : def_decl) : unit =
         | ArrayHandle { elem_ty; size } ->
             check_term allowed elem_ty;
             check_term allowed size
+        | Let { arg; value; body } ->
+            check_term allowed arg.ty;
+            check_term allowed value;
+            check_term allowed body
+        | Exists { arg; body } ->
+            check_term allowed arg.ty;
+            check_term allowed body
+        | ExistsIntro { witness; proof } ->
+            check_term allowed witness;
+            check_term allowed proof
       in
       check_term initial_allowed lam_body)
 

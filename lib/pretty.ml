@@ -39,6 +39,12 @@ let rec pp_term fmt (t : term) =
         Format.fprintf fmt "(Π(%s : %a). %a)" arg.name pp_term arg.ty pp_term result
   | Lambda { arg; body } ->
       Format.fprintf fmt "(λ(%s : %a). %a)" arg.name pp_term arg.ty pp_term body
+  | Let { arg; value; body } ->
+      Format.fprintf fmt "(let %s : %a := %a in %a)" arg.name pp_term arg.ty pp_term value pp_term body
+  | Exists { arg; body } ->
+      Format.fprintf fmt "(∃(%s : %a). %a)" arg.name pp_term arg.ty pp_term body
+  | ExistsIntro { witness; proof } ->
+      Format.fprintf fmt "⟨%a, %a⟩" pp_term witness pp_term proof
   | App (f, args) ->
       Format.fprintf fmt "(%a %a)"
         pp_term f

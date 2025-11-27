@@ -13,6 +13,8 @@ type value =
   | VConstructor of name * value list
   | VUniverse of universe
   | VPi of { arg : binder; result : term; env : env }
+  | VExists of { arg : binder; body : term; env : env }
+  | VExistsIntro of { witness : value; proof : value }
   | VEq of { ty : value; lhs : value; rhs : value }
   | VRefl of { ty : value; value : value }
   | VLiteral of literal
@@ -117,6 +119,15 @@ let rec eval (ctx : context) (env : env) (t : term) : value =
       VPi { arg; result; env }
   | Lambda { arg; body } ->
       VLambda { arg; body; env }
+  | Let { arg; value; body } ->
+      (* let x : T := v in body => (λx:T. body) v *)
+      let v = eval ctx env value in
+      let env' = extend_env env arg.name v in
+      eval ctx env' body
+  | Exists { arg; body } ->
+      VExists { arg; body; env }
+  | ExistsIntro { witness; proof } ->
+      VExistsIntro { witness = eval ctx env witness; proof = eval ctx env proof }
   | App (f, args) ->
       let f_val = eval ctx env f in
       let arg_vals = List.map (eval ctx env) args in
@@ -472,6 +483,8 @@ let rec quote (v : value) : term =
       let head = mk (Global op) in
       mk (App (head, List.map quote args))
   | VSubset { arg; pred; env = _ } -> mk ?loc:arg.b_loc (Subset { arg; pred })
+  | VExists { arg; body; env = _ } -> mk ?loc:arg.b_loc (Exists { arg; body })
+  | VExistsIntro { witness; proof } -> mk (ExistsIntro { witness = quote witness; proof = quote proof })
   | VArray { elem_ty; size } -> mk (Array { elem_ty = quote elem_ty; size = quote size })
   | VArrayHandle { elem_ty; size } -> mk (ArrayHandle { elem_ty = quote elem_ty; size = quote size })
   | VNeutral n -> quote_neutral n

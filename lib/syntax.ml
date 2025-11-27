@@ -59,6 +59,9 @@ type term_desc =
   | Pi of { arg : binder; result : term }
   | Lambda of { arg : binder; body : term }
   | App of term * term list
+  | Let of { arg : binder; value : term; body : term }  (* let x : T := v in body *)
+  | Exists of { arg : binder; body : term }  (* ∃ x : T, P *)
+  | ExistsIntro of { witness : term; proof : term }  (* ⟨w, pf⟩ *)
   | Eq of { ty : term; lhs : term; rhs : term }
   | Refl of { ty : term; value : term }
   | Rewrite of { proof : term; body : term }
@@ -277,6 +280,21 @@ let rec subst (x : var) (s : term) (t : term) : term =
         with_loc t (Lambda { arg = arg'; body })
       else
         with_loc t (Lambda { arg = arg'; body = subst x s body })
+  | Let { arg; value; body } ->
+      let arg' = { arg with ty = subst x s arg.ty } in
+      let value' = subst x s value in
+      if String.equal x arg.name then
+        with_loc t (Let { arg = arg'; value = value'; body })
+      else
+        with_loc t (Let { arg = arg'; value = value'; body = subst x s body })
+  | Exists { arg; body } ->
+      let arg' = { arg with ty = subst x s arg.ty } in
+      if String.equal x arg.name then
+        with_loc t (Exists { arg = arg'; body })
+      else
+        with_loc t (Exists { arg = arg'; body = subst x s body })
+  | ExistsIntro { witness; proof } ->
+      with_loc t (ExistsIntro { witness = subst x s witness; proof = subst x s proof })
   | App (f, args) ->
       with_loc t (App (subst x s f, List.map (subst x s) args))
   | Eq { ty; lhs; rhs } ->
@@ -347,6 +365,14 @@ let free_vars (t : term) : var list =
     | Lambda { arg; body } ->
         let acc = go acc arg.ty in
         S.remove arg.name (go acc body)
+    | Let { arg; value; body } ->
+        let acc = go (go acc arg.ty) value in
+        S.remove arg.name (go acc body)
+    | Exists { arg; body } ->
+        let acc = go acc arg.ty in
+        S.remove arg.name (go acc body)
+    | ExistsIntro { witness; proof } ->
+        go (go acc witness) proof
     | App (f, args) ->
         List.fold_left go (go acc f) args
     | Eq { ty; lhs; rhs } ->
