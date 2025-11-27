@@ -92,6 +92,31 @@ let rec fold_stmts stmts =
 
 let rec parse_type state =
   match peek state with
+  | FORALL ->
+      (* forall x: T, body -- creates a Pi type *)
+      advance state;
+      (match peek state with
+       | IDENT name ->
+           advance state;
+           expect state COLON "Expected ':' after forall variable";
+           let ty = parse_type state in
+           expect state COMMA "Expected ',' after forall type";
+           let result = parse_type state in
+           mk_term (Pi { arg = { name; ty; role = Runtime; b_loc = None }; result }) None None
+       | LPAREN ->
+           (* forall (x: T), body *)
+           advance state;
+           (match peek state with
+            | IDENT name ->
+                advance state;
+                expect state COLON "Expected ':' in forall binding";
+                let ty = parse_type state in
+                expect state RPAREN "Expected ')' after forall binding";
+                expect state COMMA "Expected ',' after forall type";
+                let result = parse_type state in
+                mk_term (Pi { arg = { name; ty; role = Runtime; b_loc = None }; result }) None None
+            | _ -> raise (ParseError "Expected identifier in forall binding"))
+       | _ -> raise (ParseError "Expected identifier or '(' after forall"))
   | LBRACE ->
       advance state;
       (match peek state with
@@ -510,6 +535,17 @@ let rec parse_constructors state =
   | DEDENT -> []
   | IDENT name ->
       advance state;
+      (* Parse dotted constructor name like MyClass.ctor *)
+      let rec parse_dotted_ctor acc =
+        match peek state with
+        | DOT ->
+            advance state;
+            (match peek state with
+             | IDENT n -> advance state; parse_dotted_ctor (acc ^ "." ^ n)
+             | _ -> acc)
+        | _ -> acc
+      in
+      let full_name = parse_dotted_ctor name in
       let args =
         match peek state with
         | LPAREN ->
@@ -520,7 +556,7 @@ let rec parse_constructors state =
         | _ -> []
       in
       expect state NEWLINE "Expected newline after constructor";
-      { ctor_name = name; ctor_args = args; ctor_loc = None } :: parse_constructors state
+      { ctor_name = full_name; ctor_args = args; ctor_loc = None } :: parse_constructors state
   | NEWLINE -> advance state; parse_constructors state
   | _ -> raise (ParseError ("Unexpected token in class body: " ^ (show_token (peek state))))
 
@@ -538,6 +574,17 @@ let parse_inductive state =
             p
         | _ -> []
       in
+      (* Check for optional "in Prop" or "in Type" universe specifier *)
+      let universe =
+        match peek state with
+        | IN ->
+            advance state;
+            (match peek state with
+             | PROP -> advance state; Syntax.Prop
+             | IDENT "Type" -> advance state; Syntax.Type
+             | _ -> raise (ParseError "Expected 'Prop' or 'Type' after 'in'"))
+        | _ -> Syntax.Type (* Default to Type universe *)
+      in
       expect state COLON "Expected ':' after class definition";
       expect state NEWLINE "Expected newline after class definition";
       expect state INDENT "Expected indented block for constructors";
@@ -546,11 +593,36 @@ let parse_inductive state =
       {
         ind_name = name;
         params = params;
-        ind_universe = Type; (* Default to Type universe *)
+        ind_universe = universe;
         constructors = ctors;
         ind_loc = None;
       }
   | _ -> raise (ParseError "Expected class name")
+
+(* Parse a theorem declaration *)
+let parse_theorem state =
+  expect state THEOREM "Expected 'theorem'";
+  match peek state with
+  | IDENT name ->
+      advance state;
+      expect state COLON "Expected ':'";
+      expect state NEWLINE "Expected newline after theorem name";
+      expect state INDENT "Expected indented block for theorem type";
+      let ty = parse_type state in
+      expect state NEWLINE "Expected newline after theorem type";
+      expect state DEDENT "Expected dedent after theorem type";
+      expect state PROOF "Expected 'proof:'";
+      expect state COLON "Expected ':' after proof";
+      expect state NEWLINE "Expected newline after proof:";
+      let proof_stmts = parse_block state (Some ty) in
+      let proof = fold_stmts proof_stmts in
+      Theorem {
+        thm_name = name;
+        thm_type = ty;
+        thm_proof = proof;
+        thm_loc = None;
+      }
+  | _ -> raise (ParseError "Expected theorem name")
 
 let parse_def state =
   expect state DEF "Expected 'def'";
@@ -609,6 +681,9 @@ let rec parse_top_level_items state =
   | DEF ->
       let def = parse_def state in
       Decl def :: parse_top_level_items state
+  | THEOREM ->
+      let thm = parse_theorem state in
+      Decl thm :: parse_top_level_items state
   | _ -> raise (ParseError ("Unexpected token at top level: " ^ (show_token (peek state))))
 
 let parse_program tokens =
